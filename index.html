@@ -1,0 +1,2261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PC Studio Builder — Evaluación de Montaje y Presupuesto PC</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- jsPDF y jsPDF-AutoTable para generación del informe oficial en PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <!-- Fuentes Inter y JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+
+    /* Barras de desplazamiento limpias */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    .donut-segment {
+      transition: stroke-dasharray 0.55s cubic-bezier(0.22, 1, 0.36, 1), stroke-dashoffset 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease, stroke-width 0.25s ease;
+      cursor: pointer;
+    }
+
+    /* Interacción de zonas en el esquema SVG */
+    .blueprint-zone {
+      cursor: pointer;
+      transition: filter 0.2s ease, opacity 0.2s ease;
+    }
+    .blueprint-zone:hover {
+      filter: drop-shadow(0 2px 6px rgba(79, 70, 229, 0.25));
+    }
+
+    /* Estilos de impresión de respaldo si falla la carga externa del CDN de PDF */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #report-preview-modal,
+      #report-preview-modal * {
+        visibility: visible;
+      }
+      #report-preview-modal {
+        position: static !important;
+        background: #ffffff !important;
+        padding: 0 !important;
+        display: block !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900 antialiased selection:bg-indigo-100 selection:text-indigo-900">
+
+  <!-- ===================================================================== -->
+  <!-- MODAL BLOQUEANTE DE IDENTIFICACIÓN OBLIGATORIA DEL ALUMNO/A           -->
+  <!-- ===================================================================== -->
+  <div id="student-login-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+      <div class="bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-5 text-white">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white/15 border border-white/25 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+            </svg>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-widest text-indigo-100 block">Modo Evaluación</span>
+            <h2 class="text-lg font-extrabold leading-tight">Identificación del Alumnado</h2>
+          </div>
+        </div>
+      </div>
+
+      <form onsubmit="submitStudentIdentity(event)" class="p-6 space-y-4">
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Introduce tus datos antes de comenzar la prueba práctica de configuración de equipos informáticos. Tu nombre quedará <strong>bloqueado</strong> durante toda la sesión y figurará en el informe PDF final.
+        </p>
+
+        <div class="space-y-1.5">
+          <label for="input-student-name" class="text-xs font-bold text-slate-800 block">
+            Nombre y Apellidos del Alumno/a <span class="text-rose-600">*</span>
+          </label>
+          <input
+            type="text"
+            id="input-student-name"
+            required
+            autocomplete="off"
+            placeholder="Ej. Laura Pérez González"
+            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-600 transition"
+          >
+        </div>
+
+        <div class="space-y-1.5">
+          <label for="input-student-group" class="text-xs font-bold text-slate-800 block">
+            Curso / Grupo <span class="text-slate-400 font-normal">(Opcional)</span>
+          </label>
+          <input
+            type="text"
+            id="input-student-group"
+            autocomplete="off"
+            placeholder="Ej. 1º SMR / 1º ASIR / TIC"
+            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-600 transition"
+          >
+        </div>
+
+        <div id="login-error-msg" class="hidden rounded-xl bg-rose-50 border border-rose-200 px-3 py-2 text-xs font-medium text-rose-700">
+          Por favor, introduce tu Nombre y Apellidos (mínimo 3 caracteres válidos).
+        </div>
+
+        <div class="bg-amber-50/80 border border-amber-200/80 rounded-xl p-3 flex items-start gap-2 text-[11px] text-amber-900">
+          <svg class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+          <span>Una vez pulsado <strong>Comenzar Evaluación</strong>, la identidad no podrá modificarse ni siquiera al reiniciar los componentes.</span>
+        </div>
+
+        <button type="submit" class="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-600/20 transition flex items-center justify-center gap-2">
+          <span>Comenzar Evaluación</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- 1. BARRA SUPERIOR DE NAVEGACIÓN, IDENTIDAD BLOQUEADA Y ACCIONES       -->
+  <!-- ===================================================================== -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-2xs">
+    <div class="max-w-[1480px] mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Identidad de la Plataforma -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 text-white flex items-center justify-center shadow-sm shadow-indigo-600/20 flex-shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="4" y="4" width="16" height="16" rx="2" />
+            <rect x="9" y="9" width="6" height="6" rx="1" />
+            <path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-slate-900">PC Studio Builder</h1>
+            <span class="px-2 py-0.5 text-[11px] font-bold rounded-full bg-amber-50 text-amber-800 border border-amber-200">Modo Evaluación</span>
+            <span class="px-2 py-0.5 text-[11px] font-bold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">IGIC 7%</span>
+          </div>
+          <p class="text-[11px] text-slate-500 hidden sm:block">Configuración Técnica y Presupuesto de Hardware</p>
+        </div>
+      </div>
+
+      <!-- Identidad Inmutable del Alumno + Botones de Evaluación -->
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <!-- Pastilla Bloqueada con Candado -->
+        <div id="locked-student-badge" class="bg-slate-100 border border-slate-300/90 rounded-xl px-3 py-1.5 flex items-center gap-2 select-none" title="Identidad del alumno bloqueada para evaluación">
+          <svg class="w-4 h-4 text-slate-600 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+          <div class="leading-tight">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Alumno/a (Bloqueado)</span>
+            <span id="hdr-student-name" class="text-xs font-extrabold text-slate-900">Pendiente de identificar</span>
+          </div>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-right hidden md:block">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block leading-none">Total con IGIC (7%)</span>
+          <span id="hdr-quick-total" class="text-sm font-extrabold font-mono text-indigo-600">0,00 €</span>
+        </div>
+
+        <button onclick="openReportPreviewModal()" class="px-3 py-2 text-xs font-semibold rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs transition flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <span class="hidden sm:inline">Vista Previa Informe</span>
+          <span class="sm:hidden">Informe</span>
+        </button>
+
+        <button onclick="exportToPDF()" class="px-3.5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm shadow-indigo-600/20 transition flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <span>Descargar PDF</span>
+        </button>
+
+        <button onclick="exportToSAV()" class="px-3.5 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20 transition flex items-center gap-1.5" title="Descargar archivo encriptado (.sav) para corrección automatizada">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+          <span>Descargar .SAV</span>
+        </button>
+
+        <button onclick="requestResetBuild()" class="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl border border-slate-200 transition" title="Vaciar componentes seleccionados (mantiene tu nombre)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- 2. CONTENIDO PRINCIPAL                                                -->
+  <!-- ===================================================================== -->
+  <main class="max-w-[1480px] w-full mx-auto px-4 sm:px-6 py-5 flex-1 flex flex-col gap-5">
+
+    <!-- GUÍA NEUTRAL DE EVALUACIÓN (VISIBLE SOLO CUANDO HAY 0 COMPONENTES) -->
+    <section id="welcome-guide" class="bg-gradient-to-r from-indigo-50/90 via-white to-sky-50/90 border border-indigo-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div class="space-y-1 max-w-2xl">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-700">
+            <span class="w-2 h-2 rounded-full bg-indigo-600"></span>
+            Ejercicio Práctico Iniciado (0 componentes seleccionados)
+          </div>
+          <h2 class="text-base sm:text-lg font-extrabold text-slate-900">Configura el equipo completo y justifica técnicamente cada elección</h2>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Analiza las especificaciones técnicas de cada componente (socket, tipo de memoria, formato, TDP en vatios, dimensiones en milímetros y potencia de fuente). Adjunta imágenes ilustrativas, redacta el motivo de elección y la justificación de compatibilidad de cada pieza y descarga tu informe en <strong>PDF</strong>.
+          </p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs flex-shrink-0">
+          <button onclick="selectCategory('cpu')" class="bg-white hover:bg-indigo-50/70 border border-slate-200 hover:border-indigo-300 rounded-xl p-3 text-left transition shadow-2xs group">
+            <span class="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center mb-1.5 group-hover:bg-indigo-600 group-hover:text-white transition">1</span>
+            <span class="font-bold text-slate-800 block">Selecciona Hardware</span>
+            <span class="text-[11px] text-slate-500">Revisa fichas técnicas</span>
+          </button>
+          <div class="bg-white border border-slate-200 rounded-xl p-3 text-left shadow-2xs">
+            <span class="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center mb-1.5">2</span>
+            <span class="font-bold text-slate-800 block">Fotos y Justificación</span>
+            <span class="text-[11px] text-slate-500">Imagen, motivo y compatibilidad</span>
+          </div>
+          <button onclick="openReportPreviewModal()" class="bg-white hover:bg-indigo-50/70 border border-slate-200 hover:border-indigo-300 rounded-xl p-3 text-left transition shadow-2xs group">
+            <span class="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center mb-1.5 group-hover:bg-indigo-600 group-hover:text-white transition">3</span>
+            <span class="font-bold text-slate-800 block">Descarga Informe PDF</span>
+            <span class="text-[11px] text-slate-500">Con nombre, fotos e IGIC</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- 3. PANEL VISUAL DE RESUMEN ECONÓMICO (IGIC 7%) Y DISTRIBUCIÓN       -->
+    <!-- =================================================================== -->
+    <section aria-label="Panel Visual de Presupuesto" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+
+      <!-- TARJETA 1: BASE IMPONIBLE -->
+      <div class="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs flex flex-col justify-between gap-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Base Imponible</span>
+          <span class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+          </span>
+        </div>
+        <div>
+          <span id="card-base-amount" class="text-2xl font-extrabold font-mono text-slate-900 block">0,00 €</span>
+          <span class="text-[11px] text-slate-500">Importe neto sin impuestos</span>
+        </div>
+      </div>
+
+      <!-- TARJETA 2: CUOTA IGIC (7%) -->
+      <div class="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs flex flex-col justify-between gap-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Impuesto IGIC (7%)</span>
+          <span class="px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 font-bold text-xs border border-indigo-100">+7%</span>
+        </div>
+        <div>
+          <span id="card-igic-amount" class="text-2xl font-extrabold font-mono text-indigo-600 block">0,00 €</span>
+          <span class="text-[11px] text-slate-500">Impuesto General Indirecto Canario</span>
+        </div>
+      </div>
+
+      <!-- TARJETA 3: TOTAL PRESUPUESTO CON IGIC -->
+      <div class="bg-gradient-to-br from-indigo-600 to-blue-600 text-white rounded-2xl p-4 shadow-sm shadow-indigo-600/15 flex flex-col justify-between gap-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-100">Total Presupuesto</span>
+          <span id="card-units-pill" class="px-2 py-0.5 rounded-lg bg-white/15 text-white font-bold text-[11px]">0 uds.</span>
+        </div>
+        <div>
+          <span id="card-total-amount" class="text-2xl font-extrabold font-mono text-white block">0,00 €</span>
+          <span class="text-[11px] text-indigo-100">Precio final con IGIC (7%) incluido</span>
+        </div>
+      </div>
+
+      <!-- TARJETA 4: GRÁFICO DONUT SVG INTERACTIVO DE DISTRIBUCIÓN DEL GASTO -->
+      <div class="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs flex flex-col justify-between gap-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
+            Distribución del Gasto
+          </span>
+          <span id="donut-hover-info" class="text-[10px] font-semibold text-indigo-600 truncate max-w-[130px]">Incluye IGIC 7%</span>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="relative w-20 h-20 flex-shrink-0 flex items-center justify-center">
+            <svg class="w-20 h-20 transform -rotate-90" viewBox="0 0 84 84" id="budget-donut-svg">
+              <circle cx="42" cy="42" r="32" fill="none" stroke="#f1f5f9" stroke-width="11"></circle>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center px-1">
+              <span id="donut-center-pct" class="text-[11px] font-extrabold font-mono text-slate-800 leading-none">0%</span>
+              <span id="donut-center-lbl" class="text-[8px] font-medium text-slate-400 mt-0.5 truncate max-w-[50px]">Vacío</span>
+            </div>
+          </div>
+
+          <div id="donut-legend-list" class="flex-1 space-y-1 text-[10px] min-w-0">
+            <!-- Rellenado dinámicamente por JS -->
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- 4. ESQUEMA VISUAL INTERACTIVO DEL MONTAJE PC Y ESCRITORIO (NEUTRAL) -->
+    <!-- =================================================================== -->
+    <section class="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col gap-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 class="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            Esquema Visual Interactivo del Equipo y Escritorio
+          </h2>
+          <p class="text-xs text-slate-500">Haz clic sobre cualquier bloque del esquema para navegar directamente a su categoría en el catálogo</p>
+        </div>
+        <span id="blueprint-selected-pill" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">0 componentes seleccionados</span>
+      </div>
+
+      <div class="w-full bg-gradient-to-b from-slate-50 to-slate-100/80 border border-slate-200/80 rounded-xl p-2 sm:p-3 overflow-hidden">
+        <svg id="hardware-blueprint-svg" viewBox="0 0 860 270" class="w-full h-auto select-none">
+          <defs>
+            <linearGradient id="screenGradOn" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#4f46e5"/>
+              <stop offset="55%" stop-color="#0ea5e9"/>
+              <stop offset="100%" stop-color="#38bdf8"/>
+            </linearGradient>
+            <linearGradient id="screenGradOff" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#cbd5e1"/>
+              <stop offset="100%" stop-color="#94a3b8"/>
+            </linearGradient>
+            <pattern id="gridPattern" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e2e8f0" stroke-width="0.6"/>
+            </pattern>
+          </defs>
+
+          <rect x="0" y="0" width="860" height="270" rx="10" fill="url(#gridPattern)" />
+          <rect x="16" y="246" width="828" height="10" rx="5" fill="#cbd5e1" />
+
+          <!-- TORRE PC / CHASIS -->
+          <g class="blueprint-zone" onclick="selectCategory('case')">
+            <rect id="bp-case-outer" x="28" y="16" width="320" height="230" rx="14" fill="#ffffff" stroke="#94a3b8" stroke-width="2.2" />
+            <rect x="38" y="32" width="300" height="164" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5" />
+            <rect x="38" y="202" width="300" height="36" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.2" />
+            <text x="188" y="26.5" text-anchor="middle" font-size="9" font-weight="700" fill="#64748b" id="bp-case-label">CAJA / CHASIS (Clic para elegir)</text>
+          </g>
+
+          <!-- VENTILACIÓN Y EXTRAS TÉRMICOS -->
+          <g class="blueprint-zone" onclick="selectCategory('cooling_extras')">
+            <rect id="bp-extras-box" x="304" y="42" width="26" height="144" rx="5" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.2" />
+            <circle cx="317" cy="68" r="8" fill="#ffffff" stroke="#64748b" stroke-width="1.1"/>
+            <circle cx="317" cy="114" r="8" fill="#ffffff" stroke="#64748b" stroke-width="1.1"/>
+            <circle cx="317" cy="160" r="8" fill="#ffffff" stroke="#64748b" stroke-width="1.1"/>
+            <text x="317" y="182" text-anchor="middle" font-size="6.5" font-weight="700" fill="#475569" id="bp-extras-label">Vent.</text>
+          </g>
+
+          <!-- PLACA BASE -->
+          <g class="blueprint-zone" onclick="selectCategory('motherboard')">
+            <rect id="bp-mobo-rect" x="52" y="42" width="188" height="144" rx="8" fill="#eef2ff" stroke="#a5b4fc" stroke-width="1.8" stroke-dasharray="4 2" />
+            <text x="146" y="56" text-anchor="middle" font-size="8.5" font-weight="700" fill="#4f46e5" id="bp-mobo-label">PLACA BASE</text>
+          </g>
+
+          <!-- PROCESADOR (CPU) -->
+          <g class="blueprint-zone" onclick="selectCategory('cpu')">
+            <rect id="bp-cpu-box" x="74" y="66" width="54" height="48" rx="7" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.8" />
+            <text x="101" y="88" text-anchor="middle" font-size="8.5" font-weight="800" fill="#1e293b">CPU</text>
+            <text x="101" y="100" text-anchor="middle" font-size="7" font-weight="700" fill="#475569" id="bp-cpu-label">Sin elegir</text>
+          </g>
+
+          <!-- REFRIGERACIÓN CPU -->
+          <g class="blueprint-zone" onclick="selectCategory('cooler')">
+            <rect id="bp-cooler-box" x="136" y="66" width="44" height="48" rx="7" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.6" />
+            <text x="158" y="88" text-anchor="middle" font-size="7.5" font-weight="800" fill="#1e293b">COOLER</text>
+            <text x="158" y="100" text-anchor="middle" font-size="6.8" font-weight="700" fill="#475569" id="bp-cooler-label">Sin elegir</text>
+          </g>
+
+          <!-- MEMORIA RAM -->
+          <g class="blueprint-zone" onclick="selectCategory('ram')">
+            <rect id="bp-ram-1" x="192" y="66" width="12" height="48" rx="2.5" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.2" />
+            <rect id="bp-ram-2" x="208" y="66" width="12" height="48" rx="2.5" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.2" />
+            <text x="206" y="124" text-anchor="middle" font-size="7.5" font-weight="700" fill="#475569" id="bp-ram-label">RAM</text>
+          </g>
+
+          <!-- ALMACENAMIENTO SSD -->
+          <g class="blueprint-zone" onclick="selectCategory('storage')">
+            <rect id="bp-ssd-rect" x="64" y="122" width="76" height="16" rx="4" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.2" />
+            <text x="102" y="132.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#475569" id="bp-ssd-label">SSD / NVMe</text>
+          </g>
+
+          <!-- TARJETA GRÁFICA (GPU) -->
+          <g class="blueprint-zone" onclick="selectCategory('gpu')">
+            <rect id="bp-gpu-rect" x="62" y="146" width="168" height="30" rx="6" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.8" />
+            <circle cx="92" cy="161" r="8" fill="#ffffff" opacity="0.85" />
+            <circle cx="126" cy="161" r="8" fill="#ffffff" opacity="0.85" />
+            <circle cx="160" cy="161" r="8" fill="#ffffff" opacity="0.85" />
+            <text x="146" y="164" text-anchor="middle" font-size="8" font-weight="800" fill="#334155" id="bp-gpu-label">TARJETA GRÁFICA GPU</text>
+          </g>
+
+          <!-- FUENTE DE ALIMENTACIÓN (PSU) -->
+          <g class="blueprint-zone" onclick="selectCategory('psu')">
+            <rect id="bp-psu-rect" x="48" y="208" width="136" height="24" rx="5" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1.5" />
+            <text x="116" y="223" text-anchor="middle" font-size="8" font-weight="800" fill="#334155" id="bp-psu-label">FUENTE PSU</text>
+          </g>
+
+          <!-- MONITOR EN ESCRITORIO -->
+          <g class="blueprint-zone" onclick="selectCategory('monitors')">
+            <rect x="556" y="164" width="18" height="44" rx="2" fill="#94a3b8" />
+            <rect x="518" y="204" width="94" height="8" rx="4" fill="#64748b" />
+            <rect x="412" y="26" width="306" height="142" rx="10" fill="#334155" stroke="#1e293b" stroke-width="3" />
+            <rect id="bp-monitor-screen" x="422" y="36" width="286" height="122" rx="4" fill="url(#screenGradOff)" />
+            <text x="565" y="94" text-anchor="middle" font-size="11" font-weight="800" fill="#ffffff" id="bp-monitor-label">MONITOR (Sin elegir)</text>
+            <text x="565" y="110" text-anchor="middle" font-size="8.5" font-weight="500" fill="#f1f5f9" id="bp-monitor-sub">Haz clic para abrir el catálogo de monitores</text>
+          </g>
+
+          <!-- PERIFÉRICOS EN ESCRITORIO -->
+          <g class="blueprint-zone" onclick="selectCategory('peripherals')">
+            <rect x="406" y="218" width="320" height="24" rx="5" fill="#e2e8f0" stroke="#cbd5e1" stroke-width="1" />
+            <rect id="bp-keyboard" x="424" y="222" width="184" height="16" rx="4" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.3" />
+            <text x="516" y="233" text-anchor="middle" font-size="7.5" font-weight="700" fill="#475569" id="bp-kbd-label">TECLADO / RATÓN / PERIFÉRICOS</text>
+            <rect id="bp-mouse" x="634" y="222" width="36" height="16" rx="8" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.3" />
+            <path d="M768 208 C768 180, 808 180, 808 208" fill="none" stroke="#94a3b8" stroke-width="4" stroke-linecap="round" id="bp-headset-band" />
+            <rect x="762" y="204" width="10" height="18" rx="4" fill="#cbd5e1" stroke="#64748b" stroke-width="1.2" />
+            <rect x="804" y="204" width="10" height="18" rx="4" fill="#cbd5e1" stroke="#64748b" stroke-width="1.2" />
+            <text x="788" y="236" text-anchor="middle" font-size="7.5" font-weight="700" fill="#64748b">Audio/Extras</text>
+          </g>
+        </svg>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- 5. ESPACIO DE TRABAJO: CATÁLOGO (IZQ 7 COLS) Y PRESUPUESTO (DER 5)  -->
+    <!-- =================================================================== -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+      <!-- COLUMNA IZQUIERDA: CATÁLOGO EXTENSO DE 11 CATEGORÍAS (SIN PISTAS) -->
+      <section class="lg:col-span-7 bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col gap-4">
+        
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Catálogo de Hardware y Periféricos (11 Categorías)</span>
+            <span id="catalog-counter" class="text-xs font-semibold text-indigo-600">12 modelos</span>
+          </div>
+          <div id="category-pills" class="flex flex-wrap gap-1.5">
+            <!-- Rellenado por JS -->
+          </div>
+        </div>
+
+        <!-- Barra de Controles: Solo Búsqueda y Ordenación (Sin filtros de compatibilidad) -->
+        <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          <div class="relative flex-1">
+            <input type="text" id="catalog-search" oninput="onSearchInput(this.value)" placeholder="Buscar por modelo o especificación técnica..." class="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+            <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <select id="select-sort-order" onchange="onSortChange(this.value)" class="w-full sm:w-auto bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:border-indigo-500">
+              <option value="default">Orden: Catálogo</option>
+              <option value="price-asc">Precio: Menor a Mayor</option>
+              <option value="price-desc">Precio: Mayor a Menor</option>
+              <option value="name-asc">Nombre: A - Z</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Título y Descripción Neutral de la Categoría Activa -->
+        <div class="border-b border-slate-100 pb-2">
+          <h3 id="cat-header-title" class="text-sm font-extrabold text-slate-900">Procesadores (CPU)</h3>
+          <p id="cat-header-desc" class="text-xs text-slate-500">Precios mostrados en Base Imponible (€ sin IGIC)</p>
+        </div>
+
+        <!-- Grid de Tarjetas de Producto (Solo Datos Objetivos) -->
+        <div id="catalog-cards-grid" class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[780px] overflow-y-auto pr-1">
+          <!-- Rellenado por JS -->
+        </div>
+
+      </section>
+
+      <!-- COLUMNA DERECHA: PRESUPUESTO IGIC (7%) Y JUSTIFICACIONES DEL ALUMNO -->
+      <section class="lg:col-span-5 bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col gap-4">
+        
+        <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
+          <div>
+            <h2 class="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+              <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+              Presupuesto y Justificación del Alumno/a
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Adjunta imagen local, redacta el motivo de elección y la justificación técnica</p>
+          </div>
+          <span id="budget-count-badge" class="text-xs font-bold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg flex-shrink-0">0 artículos</span>
+        </div>
+
+        <!-- Lista de Componentes Seleccionados -->
+        <div id="budget-items-list" class="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+          <!-- Rellenado por JS -->
+        </div>
+
+        <!-- Resumen Fiscal Exclusivo IGIC (7%) -->
+        <div class="bg-slate-50 border border-slate-200/90 rounded-xl p-4 space-y-2">
+          <div class="flex justify-between items-center text-xs text-slate-600">
+            <span>Base Imponible (Sin impuestos)</span>
+            <span id="summary-base" class="font-mono font-semibold text-slate-800">0,00 €</span>
+          </div>
+          <div class="flex justify-between items-center text-xs text-slate-600">
+            <span class="flex items-center gap-1.5">
+              Impuesto IGIC
+              <span class="px-1.5 py-0.2 bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">7%</span>
+            </span>
+            <span id="summary-igic" class="font-mono font-semibold text-indigo-600">0,00 €</span>
+          </div>
+          <div class="border-t border-slate-200 pt-2.5 mt-2 flex justify-between items-center">
+            <span class="text-sm font-extrabold text-slate-900">TOTAL PRESUPUESTO (IGIC incl.)</span>
+            <span id="summary-total" class="text-lg font-extrabold font-mono text-indigo-600">0,00 €</span>
+          </div>
+        </div>
+
+        <!-- Botones Vista Previa Informe, Descarga PDF y Descarga .SAV -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <button onclick="openReportPreviewModal()" class="sm:col-span-2 py-2.5 px-4 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-semibold text-xs transition flex items-center justify-center gap-2 shadow-2xs">
+            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            Vista Previa Informe
+          </button>
+          <button onclick="exportToPDF()" class="py-2.5 px-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-sm shadow-indigo-600/20">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Descargar PDF
+          </button>
+          <button onclick="exportToSAV()" class="py-2.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-sm shadow-emerald-600/20" title="Descargar archivo encriptado (.sav) para corrección automatizada">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+            Descargar .SAV
+          </button>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL DE VISTA PREVIA DEL INFORME DE EVALUACIÓN                       -->
+  <!-- ===================================================================== -->
+  <div id="report-preview-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/55 backdrop-blur-xs p-3 sm:p-6">
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-[1380px] max-h-[92vh] flex flex-col overflow-hidden">
+      
+      <!-- Cabecera Modal -->
+      <div class="px-5 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50 no-print">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-2xs">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900">Vista Previa del Informe de Evaluación (PDF)</h3>
+            <p class="text-xs text-slate-500">Revisa tu presupuesto con IGIC (7%), las imágenes y tus justificaciones técnicas antes de descargar el documento</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="exportToPDF()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Descargar PDF de Evaluación
+          </button>
+          <button onclick="exportToSAV()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5" title="Descargar archivo encriptado (.sav) para corrección automatizada">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+            Descargar .SAV
+          </button>
+          <button onclick="closeReportPreviewModal()" class="p-2 rounded-xl bg-white hover:bg-slate-100 text-slate-500 hover:text-slate-800 border border-slate-200 transition" title="Cerrar">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Datos del Alumno Bloqueados y Fecha -->
+      <div id="modal-student-header" class="px-5 py-3 bg-indigo-50/70 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4 text-xs">
+        <!-- Rellenado por JS -->
+      </div>
+
+      <!-- Cuerpo del Informe -->
+      <div class="flex-1 overflow-auto p-4 sm:p-5 bg-white space-y-4">
+        <div class="border border-slate-300 rounded-xl overflow-hidden shadow-2xs">
+          <table class="w-full text-left border-collapse min-w-[1200px]">
+            <thead>
+              <tr class="bg-slate-100 border-b border-slate-300 text-[11px] font-bold uppercase tracking-wider text-slate-700">
+                <th class="py-2.5 px-3 border-r border-slate-200 w-36">Categoría</th>
+                <th class="py-2.5 px-3 border-r border-slate-200 text-center w-28">Imagen</th>
+                <th class="py-2.5 px-3 border-r border-slate-200 w-60">Componente y Especificaciones</th>
+                <th class="py-2.5 px-3 border-r border-slate-200 text-center w-14">Uds.</th>
+                <th class="py-2.5 px-3 border-r border-slate-200 text-right w-24">Base (€)</th>
+                <th class="py-2.5 px-3 border-r border-slate-200 text-right w-24">IGIC 7% (€)</th>
+                <th class="py-2.5 px-3 border-r border-slate-200 text-right w-28">Total (€)</th>
+                <th class="py-2.5 px-3 border-r border-slate-200 w-56 bg-indigo-50/70 text-indigo-900">Motivo de elección</th>
+                <th class="py-2.5 px-3 w-60 bg-sky-50/70 text-sky-900">Justificación de compatibilidad</th>
+              </tr>
+            </thead>
+            <tbody id="modal-table-tbody" class="divide-y divide-slate-200 text-xs">
+              <!-- Rellenado por JS -->
+            </tbody>
+            <tfoot id="modal-table-tfoot" class="bg-slate-100 border-t-2 border-slate-300 font-bold text-xs text-slate-900">
+              <!-- Rellenado por JS -->
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL DE CONFIRMACIÓN PARA VACIAR COMPONENTES (MANTIENE EL NOMBRE)    -->
+  <!-- ===================================================================== -->
+  <div id="reset-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/45 backdrop-blur-xs p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-xl max-w-md w-full p-5 space-y-4">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-slate-900">¿Vaciar los componentes seleccionados?</h3>
+          <p class="text-xs text-slate-600 mt-1 leading-relaxed">Se eliminarán las piezas añadidas, las imágenes adjuntas y tus textos de justificación para empezar el montaje de nuevo. Tu nombre de alumno/a permanecerá bloqueado.</p>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button onclick="closeResetModal()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition">Cancelar</button>
+        <button onclick="confirmResetBuild()" class="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs transition shadow-2xs">Sí, vaciar componentes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST DE NOTIFICACIÓN -->
+  <div id="toast-notification" class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-lg text-xs font-medium flex items-center gap-2 opacity-0 translate-y-2 transition-all duration-300 pointer-events-none no-print">
+    <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+    <span id="toast-message">Notificación</span>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MOTOR DE EVALUACIÓN, CATÁLOGO DE 11 CATEGORÍAS Y GENERACIÓN PDF       -->
+  <!-- ===================================================================== -->
+  <script>
+    // -------------------------------------------------------------------------
+    // 1. DEFINICIÓN DE LAS 11 CATEGORÍAS
+    // -------------------------------------------------------------------------
+    const CATEGORIES = [
+      { key: 'cpu', label: 'Procesadores (CPU)', isMulti: false, desc: 'Cerebro del sistema: define el socket compatible, consumo TDP, gráficos integrados (iGPU) y si incluye disipador.' },
+      { key: 'motherboard', label: 'Placas Base', isMulti: false, desc: 'Conecta los componentes: determina el socket, estándar de memoria RAM (DDR4/DDR5), ranuras M.2 y formato.' },
+      { key: 'ram', label: 'Memoria RAM', isMulti: false, desc: 'Memoria principal del sistema. Los kits de 2 módulos activan Dual-Channel para duplicar el ancho de banda.' },
+      { key: 'gpu', label: 'Tarjetas Gráficas (GPU)', isMulti: false, desc: 'Aceleración gráfica 3D y renderizado. Verifica su longitud en mm frente al límite de la caja y consumo TDP.' },
+      { key: 'cooler', label: 'Refrigeración CPU', isMulti: false, desc: 'Disipación térmica por aire o líquida AIO. Su capacidad en W debe cubrir el TDP del procesador elegido.' },
+      { key: 'storage', label: 'Almacenamiento NVMe/SSD', isMulti: true, desc: 'Unidades de estado sólido de alta velocidad PCIe Gen4/Gen5 o SATA. Puedes añadir múltiples unidades.' },
+      { key: 'psu', label: 'Fuentes de Alimentación (PSU)', isMulti: false, desc: 'Suministra energía limpia y estable. Se recomienda trabajar por debajo del 80% de carga máxima.' },
+      { key: 'case', label: 'Cajas / Chasis', isMulti: false, desc: 'Aloja todos los componentes. Define los formatos de placa admitidos, largo máximo de GPU y altura de disipador.' },
+      { key: 'cooling_extras', label: 'Ventilación y Extras Térmicos', isMulti: true, desc: 'Pastas térmicas de alto rendimiento y packs de ventiladores de 120mm que reducen la temperatura de la CPU.' },
+      { key: 'monitors', label: 'Monitores', isMulti: true, desc: 'Pantallas gaming de alta frecuencia, paneles OLED o monitores 4K calibrados para diseño profesional.' },
+      { key: 'peripherals', label: 'Periféricos', isMulti: true, desc: 'Teclados mecánicos, ratones ultraligeros, auriculares inalámbricos, alfombrillas XXL y webcams 4K.' }
+    ];
+
+    // -------------------------------------------------------------------------
+    // 2. CATÁLOGO EXTENSO Y REALISTA (80 ARTÍCULOS EN 11 CATEGORÍAS)
+    // -------------------------------------------------------------------------
+    const CATALOG = {
+      // 1. Procesadores (CPU) - 12 modelos
+      cpu: [
+        { id: 'cpu-7800x3d', name: 'AMD Ryzen 7 7800X3D', price: 399.00, socket: 'AM5', tdp: 120, cores: '8C / 16T', boost: '5.0 GHz', stockCooler: false, igpu: true, specs: '8 Núcleos / 16 Hilos • Hasta 5.0 GHz • 96MB 3D V-Cache • Socket AM5 • TDP 120W • Con iGPU • Sin disipador' },
+        { id: 'cpu-7600x', name: 'AMD Ryzen 5 7600X', price: 195.00, socket: 'AM5', tdp: 105, cores: '6C / 12T', boost: '5.3 GHz', stockCooler: false, igpu: true, specs: '6 Núcleos / 12 Hilos • Hasta 5.3 GHz • Socket AM5 • TDP 105W • Con iGPU • Sin disipador' },
+        { id: 'cpu-7950x3d', name: 'AMD Ryzen 9 7950X3D', price: 589.00, socket: 'AM5', tdp: 120, cores: '16C / 32T', boost: '5.7 GHz', stockCooler: false, igpu: true, specs: '16 Núcleos / 32 Hilos • Hasta 5.7 GHz • 144MB Caché • Socket AM5 • TDP 120W • Con iGPU • Sin disipador' },
+        { id: 'cpu-9700x', name: 'AMD Ryzen 7 9700X', price: 349.00, socket: 'AM5', tdp: 65, cores: '8C / 16T', boost: '5.5 GHz', stockCooler: false, igpu: true, specs: '8 Núcleos / 16 Hilos • Zen 5 • Hasta 5.5 GHz • Socket AM5 • TDP 65W • Con iGPU • Sin disipador' },
+        { id: 'cpu-5700x3d', name: 'AMD Ryzen 7 5700X3D', price: 199.00, socket: 'AM4', tdp: 105, cores: '8C / 16T', boost: '4.1 GHz', stockCooler: false, igpu: false, specs: '8 Núcleos / 16 Hilos • 4.1 GHz • 96MB 3D V-Cache • Socket AM4 • TDP 105W • Sin iGPU • Sin disipador' },
+        { id: 'cpu-5600x', name: 'AMD Ryzen 5 5600X', price: 122.00, socket: 'AM4', tdp: 65, cores: '6C / 12T', boost: '4.6 GHz', stockCooler: true, stockCoolerName: 'Wraith Stealth (65W)', stockCoolerTdp: 65, igpu: false, specs: '6 Núcleos / 12 Hilos • 4.6 GHz • Socket AM4 • TDP 65W • Sin iGPU • Incluye disipador Wraith Stealth' },
+        { id: 'cpu-14900k', name: 'Intel Core i9-14900K', price: 540.00, socket: 'LGA1700', tdp: 253, cores: '24C / 32T', boost: '6.0 GHz', stockCooler: false, igpu: true, specs: '24 Núcleos (8P+16E) • Hasta 6.0 GHz • Socket LGA1700 • TDP 253W • Con iGPU • Sin disipador' },
+        { id: 'cpu-14700k', name: 'Intel Core i7-14700K', price: 385.00, socket: 'LGA1700', tdp: 219, cores: '20C / 28T', boost: '5.6 GHz', stockCooler: false, igpu: true, specs: '20 Núcleos (8P+12E) • Hasta 5.6 GHz • Socket LGA1700 • TDP 219W • Con iGPU • Sin disipador' },
+        { id: 'cpu-14600kf', name: 'Intel Core i5-14600KF', price: 259.00, socket: 'LGA1700', tdp: 181, cores: '14C / 20T', boost: '5.3 GHz', stockCooler: false, igpu: false, specs: '14 Núcleos (6P+8E) • Hasta 5.3 GHz • Socket LGA1700 • TDP 181W • Sin iGPU • Sin disipador' },
+        { id: 'cpu-13400f', name: 'Intel Core i5-13400F', price: 175.00, socket: 'LGA1700', tdp: 65, cores: '10C / 16T', boost: '4.6 GHz', stockCooler: true, stockCoolerName: 'Intel Laminar RM1 (65W)', stockCoolerTdp: 65, igpu: false, specs: '10 Núcleos (6P+4E) • 4.6 GHz • Socket LGA1700 • TDP 65W • Sin iGPU • Incluye disipador Laminar RM1' },
+        { id: 'cpu-u9-285k', name: 'Intel Core Ultra 9 285K', price: 615.00, socket: 'LGA1851', tdp: 250, cores: '24C / 24T', boost: '5.7 GHz', stockCooler: false, igpu: true, specs: '24 Núcleos (8P+16E) • 5.7 GHz • NPU IA • Socket LGA1851 • TDP 250W • Con iGPU • Sin disipador' },
+        { id: 'cpu-u7-265k', name: 'Intel Core Ultra 7 265K', price: 410.00, socket: 'LGA1851', tdp: 175, cores: '20C / 20T', boost: '5.5 GHz', stockCooler: false, igpu: true, specs: '20 Núcleos (8P+12E) • 5.5 GHz • NPU IA • Socket LGA1851 • TDP 175W • Con iGPU • Sin disipador' }
+      ],
+
+      // 2. Placas Base - 10 modelos
+      motherboard: [
+        { id: 'mb-x670e-e', name: 'ASUS ROG Strix X670E-E', price: 445.00, socket: 'AM5', ramType: 'DDR5', formFactor: 'ATX', m2Slots: 4, specs: 'Socket AM5 • Chipset X670E • DDR5 • Formato ATX • 4x Ranuras M.2 • PCIe 5.0' },
+        { id: 'mb-b650-tomahawk', name: 'MSI MAG B650 Tomahawk WiFi', price: 189.00, socket: 'AM5', ramType: 'DDR5', formFactor: 'ATX', m2Slots: 3, specs: 'Socket AM5 • Chipset B650 • DDR5 • Formato ATX • 3x Ranuras M.2 • WiFi 6E' },
+        { id: 'mb-b650m-ds3h', name: 'Gigabyte B650M DS3H', price: 139.00, socket: 'AM5', ramType: 'DDR5', formFactor: 'Micro-ATX', m2Slots: 2, specs: 'Socket AM5 • Chipset B650 • DDR5 • Formato Micro-ATX • 2x Ranuras M.2' },
+        { id: 'mb-b550-f', name: 'ASUS ROG Strix B550-F', price: 158.00, socket: 'AM4', ramType: 'DDR4', formFactor: 'ATX', m2Slots: 2, specs: 'Socket AM4 • Chipset B550 • DDR4 • Formato ATX • 2x Ranuras M.2 • Audio SupremeFX' },
+        { id: 'mb-b550m-vdh', name: 'MSI B550M Pro-VDH', price: 96.00, socket: 'AM4', ramType: 'DDR4', formFactor: 'Micro-ATX', m2Slots: 2, specs: 'Socket AM4 • Chipset B550 • DDR4 • Formato Micro-ATX • 2x Ranuras M.2' },
+        { id: 'mb-z790-e', name: 'ASUS ROG Strix Z790-E', price: 419.00, socket: 'LGA1700', ramType: 'DDR5', formFactor: 'ATX', m2Slots: 5, specs: 'Socket LGA1700 • Chipset Z790 • DDR5 • Formato ATX • 5x Ranuras M.2 • PCIe 5.0' },
+        { id: 'mb-b760-p-ddr4', name: 'MSI PRO B760-P WiFi DDR4', price: 138.00, socket: 'LGA1700', ramType: 'DDR4', formFactor: 'ATX', m2Slots: 2, specs: 'Socket LGA1700 • Chipset B760 • DDR4 • Formato ATX • 2x Ranuras M.2 • WiFi 6E' },
+        { id: 'mb-b760m-ddr4', name: 'Gigabyte B760M Gaming X DDR4', price: 118.00, socket: 'LGA1700', ramType: 'DDR4', formFactor: 'Micro-ATX', m2Slots: 2, specs: 'Socket LGA1700 • Chipset B760 • DDR4 • Formato Micro-ATX • 2x Ranuras M.2' },
+        { id: 'mb-z890-hero', name: 'ASUS ROG Maximus Z890 Hero', price: 655.00, socket: 'LGA1851', ramType: 'DDR5', formFactor: 'ATX', m2Slots: 6, specs: 'Socket LGA1851 • Chipset Z890 • DDR5 • Formato ATX • 6x Ranuras M.2 • Thunderbolt 4' },
+        { id: 'mb-z890-p', name: 'MSI PRO Z890-P WiFi', price: 245.00, socket: 'LGA1851', ramType: 'DDR5', formFactor: 'ATX', m2Slots: 4, specs: 'Socket LGA1851 • Chipset Z890 • DDR5 • Formato ATX • 4x Ranuras M.2 • WiFi 7' }
+      ],
+
+      // 3. Memoria RAM - 6 kits
+      ram: [
+        { id: 'ram-32-ddr5-6000', name: 'Kit 32GB (2x16GB) DDR5 6000MHz CL30', price: 118.00, ramType: 'DDR5', capacity: 32, modules: 2, speed: 6000, specs: 'DDR5 • 32GB (2x16GB Dual-Channel) • 6000MHz CL30 • AMD EXPO / Intel XMP' },
+        { id: 'ram-64-ddr5-6400', name: 'Kit 64GB (2x32GB) DDR5 6400MHz', price: 225.00, ramType: 'DDR5', capacity: 64, modules: 2, speed: 6400, specs: 'DDR5 • 64GB (2x32GB Dual-Channel) • 6400MHz CL32 • Edición y Carga Pesada' },
+        { id: 'ram-16-ddr5-single', name: 'Kit 16GB (1x16GB) DDR5 5200MHz', price: 52.00, ramType: 'DDR5', capacity: 16, modules: 1, speed: 5200, specs: 'DDR5 • 16GB (1x16GB Módulo Único Single-Channel) • 5200MHz' },
+        { id: 'ram-32-ddr4-3600', name: 'Kit 32GB (2x16GB) DDR4 3600MHz', price: 69.00, ramType: 'DDR4', capacity: 32, modules: 2, speed: 3600, specs: 'DDR4 • 32GB (2x16GB Dual-Channel) • 3600MHz CL18 • Baja Latencia' },
+        { id: 'ram-16-ddr4-3200-dual', name: 'Kit 16GB (2x8GB) DDR4 3200MHz', price: 38.00, ramType: 'DDR4', capacity: 16, modules: 2, speed: 3200, specs: 'DDR4 • 16GB (2x8GB Dual-Channel) • 3200MHz CL16' },
+        { id: 'ram-16-ddr4-single', name: 'Kit 16GB (1x16GB) DDR4 3200MHz', price: 33.00, ramType: 'DDR4', capacity: 16, modules: 1, speed: 3200, specs: 'DDR4 • 16GB (1x16GB Módulo Único Single-Channel) • 3200MHz' }
+      ],
+
+      // 4. Tarjetas Gráficas (GPU) - 9 modelos
+      gpu: [
+        { id: 'gpu-4090', name: 'NVIDIA RTX 4090 24GB', price: 1740.00, length: 336, tdp: 450, vram: 24, specs: '24GB GDDR6X • Gaming 4K / IA • Longitud 336mm • TDP 450W' },
+        { id: 'gpu-4080s', name: 'NVIDIA RTX 4080 Super 16GB', price: 965.00, length: 310, tdp: 320, vram: 16, specs: '16GB GDDR6X • Gaming 4K Ultra • Longitud 310mm • TDP 320W' },
+        { id: 'gpu-4070tis', name: 'NVIDIA RTX 4070 Ti Super 16GB', price: 795.00, length: 300, tdp: 285, vram: 16, specs: '16GB GDDR6X • 1440p / 4K • Longitud 300mm • TDP 285W' },
+        { id: 'gpu-4070s', name: 'NVIDIA RTX 4070 Super 12GB', price: 589.00, length: 244, tdp: 220, vram: 12, specs: '12GB GDDR6X • 1440p Alto Rendimiento • Longitud 244mm • TDP 220W' },
+        { id: 'gpu-4060ti', name: 'NVIDIA RTX 4060 Ti 8GB', price: 365.00, length: 227, tdp: 160, vram: 8, specs: '8GB GDDR6 • 1080p Ultra / DLSS 3 • Longitud 227mm • TDP 160W' },
+        { id: 'gpu-4060', name: 'NVIDIA RTX 4060 8GB', price: 279.00, length: 199, tdp: 115, vram: 8, specs: '8GB GDDR6 • Compacta Eficiente • Longitud 199mm • TDP 115W' },
+        { id: 'gpu-7900xtx', name: 'AMD Radeon RX 7900 XTX 24GB', price: 899.00, length: 320, tdp: 355, vram: 24, specs: '24GB GDDR6 • Rasterización 4K • Longitud 320mm • TDP 355W' },
+        { id: 'gpu-7800xt', name: 'AMD Radeon RX 7800 XT 16GB', price: 479.00, length: 280, tdp: 263, vram: 16, specs: '16GB GDDR6 • 1440p Nativo • Longitud 280mm • TDP 263W' },
+        { id: 'gpu-7600', name: 'AMD Radeon RX 7600 8GB', price: 249.00, length: 204, tdp: 165, vram: 8, specs: '8GB GDDR6 • 1080p Calidad/Precio • Longitud 204mm • TDP 165W' }
+      ],
+
+      // 5. Refrigeración CPU - 7 modelos
+      cooler: [
+        { id: 'clr-nhd15', name: 'Noctua NH-D15 Chromax', price: 112.00, type: 'Air', tdpRating: 250, height: 165, radiatorSize: 0, specs: 'Aire Doble Torre • Capacidad 250W TDP • Altura 165mm • Silencio Extremo' },
+        { id: 'clr-pa120', name: 'Thermalright Peerless Assassin 120 SE', price: 38.00, type: 'Air', tdpRating: 220, height: 155, radiatorSize: 0, specs: 'Aire Doble Torre • Capacidad 220W TDP • Altura 155mm • Gran Relación Calidad/Precio' },
+        { id: 'clr-ak400', name: 'DeepCool AK400', price: 34.00, type: 'Air', tdpRating: 180, height: 155, radiatorSize: 0, specs: 'Aire Torre Simple • Capacidad 180W TDP • Altura 155mm' },
+        { id: 'clr-arctic360', name: 'Arctic Liquid Freezer III 360', price: 96.00, type: 'AIO', tdpRating: 320, height: 65, radiatorSize: 360, specs: 'Líquida AIO 360mm • Capacidad 320W TDP • Ventilador VRM Integrado' },
+        { id: 'clr-h150i', name: 'Corsair iCUE H150i Elite 360mm', price: 179.00, type: 'AIO', tdpRating: 300, height: 62, radiatorSize: 360, specs: 'Líquida AIO 360mm • Capacidad 300W TDP • Iluminación RGB' },
+        { id: 'clr-kraken240', name: 'NZXT Kraken 240 RGB', price: 149.00, type: 'AIO', tdpRating: 240, height: 60, radiatorSize: 240, specs: 'Líquida AIO 240mm • Capacidad 240W TDP • Pantalla LCD en Bomba' },
+        { id: 'clr-hyper212', name: 'Cooler Master Hyper 212 Halo', price: 39.00, type: 'Air', tdpRating: 150, height: 154, radiatorSize: 0, specs: 'Aire Torre Simple • Capacidad 150W TDP • Altura 154mm' }
+      ],
+
+      // 6. Almacenamiento NVMe/SSD - 6 modelos
+      storage: [
+        { id: 'st-990pro-2tb', name: 'Samsung 990 PRO 2TB NVMe Gen4', price: 165.00, interface: 'NVMe PCIe 4.0', speed: 7450, capacity: '2TB', specs: 'M.2 2280 • NVMe Gen4 x4 • Lectura 7.450 MB/s • 2TB' },
+        { id: 'st-sn850x-1tb', name: 'WD Black SN850X 1TB NVMe Gen4', price: 88.00, interface: 'NVMe PCIe 4.0', speed: 7300, capacity: '1TB', specs: 'M.2 2280 • NVMe Gen4 x4 • Lectura 7.300 MB/s • 1TB' },
+        { id: 'st-p3plus-1tb', name: 'Crucial P3 Plus 1TB NVMe', price: 64.00, interface: 'NVMe PCIe 4.0', speed: 5000, capacity: '1TB', specs: 'M.2 2280 • NVMe Gen4 • Lectura 5.000 MB/s • 1TB' },
+        { id: 'st-nv2-500gb', name: 'Kingston NV2 500GB NVMe', price: 39.00, interface: 'NVMe PCIe 4.0', speed: 3500, capacity: '500GB', specs: 'M.2 2280 • NVMe Gen4 • Lectura 3.500 MB/s • 500GB' },
+        { id: 'st-t700-2tb', name: 'Crucial T700 2TB NVMe Gen5', price: 245.00, interface: 'NVMe PCIe 5.0', speed: 12400, capacity: '2TB', specs: 'M.2 2280 • NVMe Gen5 x4 • Lectura 12.400 MB/s • 2TB' },
+        { id: 'st-870evo-1tb', name: 'Samsung 870 EVO 1TB SATA', price: 79.00, interface: 'SATA III 2.5"', speed: 560, capacity: '1TB', specs: 'SSD 2.5" • SATA 6Gb/s • Lectura 560 MB/s • 1TB' }
+      ],
+
+      // 7. Fuentes de Alimentación (PSU) - 6 modelos
+      psu: [
+        { id: 'psu-rm1000e', name: 'Corsair RM1000e 1000W 80+ Gold ATX 3.0', price: 159.00, wattage: 1000, efficiency: '80+ Gold', atx3: true, specs: '1000W • Certificación 80+ Gold • Modular • ATX 3.0 / PCIe 5.0' },
+        { id: 'psu-a850gl', name: 'MSI MAG A850GL 850W 80+ Gold ATX 3.0', price: 118.00, wattage: 850, efficiency: '80+ Gold', atx3: true, specs: '850W • Certificación 80+ Gold • Modular • ATX 3.0 / Cable 16 pines' },
+        { id: 'psu-gx750', name: 'Seasonic Focus GX-750 750W 80+ Gold', price: 105.00, wattage: 750, efficiency: '80+ Gold', atx3: false, specs: '750W • Certificación 80+ Gold • 100% Modular • Ventilador Híbrido' },
+        { id: 'psu-rm650', name: 'Corsair RM650 650W 80+ Gold', price: 84.00, wattage: 650, efficiency: '80+ Gold', atx3: false, specs: '650W • Certificación 80+ Gold • 100% Modular' },
+        { id: 'psu-a550bn', name: 'MSI MAG A550BN 550W 80+ Bronze', price: 52.00, wattage: 550, efficiency: '80+ Bronze', atx3: false, specs: '550W • Certificación 80+ Bronze • Circuito DC-to-DC' },
+        { id: 'psu-pp12-1200', name: 'be quiet! Pure Power 12 M 1200W 80+ Platinum', price: 199.00, wattage: 1200, efficiency: '80+ Platinum', atx3: true, specs: '1200W • Certificación 80+ Platinum • ATX 3.0 • Ultrasilenciosa' }
+      ],
+
+      // 8. Cajas / Chasis - 6 modelos
+      case: [
+        { id: 'cs-lancool216', name: 'Lian Li Lancool 216', price: 109.00, formFactorSupport: ['ATX', 'Micro-ATX', 'Mini-ITX'], maxGpuLength: 392, maxCoolerHeight: 180, radiatorSupport: [240, 360], airflow: 'Alto', specs: 'ATX/mATX/ITX • Max GPU 392mm • Max Cooler 180mm • Soporta Radiador 360mm' },
+        { id: 'cs-h6flow', name: 'NZXT H6 Flow', price: 119.00, formFactorSupport: ['ATX', 'Micro-ATX', 'Mini-ITX'], maxGpuLength: 365, maxCoolerHeight: 163, radiatorSupport: [240, 360], airflow: 'Alto', specs: 'ATX/mATX/ITX • Max GPU 365mm • Max Cooler 163mm • Soporta Radiador 360mm' },
+        { id: 'cs-4000d', name: 'Corsair 4000D Airflow', price: 94.00, formFactorSupport: ['ATX', 'Micro-ATX', 'Mini-ITX'], maxGpuLength: 360, maxCoolerHeight: 170, radiatorSupport: [240, 360], airflow: 'Alto', specs: 'ATX/mATX/ITX • Max GPU 360mm • Max Cooler 170mm • Soporta Radiador 360mm' },
+        { id: 'cs-popmini', name: 'Fractal Design Pop Mini Air', price: 89.00, formFactorSupport: ['Micro-ATX', 'Mini-ITX'], maxGpuLength: 365, maxCoolerHeight: 170, radiatorSupport: [240], airflow: 'Alto', specs: 'Solo Micro-ATX/ITX • Max GPU 365mm • Max Cooler 170mm • Radiador hasta 240mm' },
+        { id: 'cs-q300l', name: 'Cooler Master MasterBox Q300L', price: 49.00, formFactorSupport: ['Micro-ATX', 'Mini-ITX'], maxGpuLength: 360, maxCoolerHeight: 159, radiatorSupport: [240], airflow: 'Medio', specs: 'Solo Micro-ATX/ITX • Max GPU 360mm • Max Cooler 159mm • Sin radiador 360mm (máx 240mm)' },
+        { id: 'cs-nzxth1', name: 'NZXT H1 V2 / Mini-ITX Compact', price: 159.00, formFactorSupport: ['Mini-ITX'], maxGpuLength: 324, maxCoolerHeight: 130, radiatorSupport: [140], airflow: 'Restringido', specs: 'Solo Mini-ITX • Max GPU 324mm • Max Cooler 130mm • Radiador 140mm' }
+      ],
+
+      // 9. Ventilación y Extras Térmicos - 4 modelos
+      cooling_extras: [
+        { id: 'ext-kryonaut', name: 'Pasta Térmica Thermal Grizzly Kryonaut', price: 9.90, tempDelta: 3.0, specs: 'Compuesto térmico de máxima conductividad • Reduce temperatura CPU en -3°C' },
+        { id: 'ext-mx6', name: 'Pasta Térmica Arctic MX-6', price: 7.50, tempDelta: 2.5, specs: 'Pasta térmica de alta durabilidad • Reduce temperatura CPU en -2.5°C' },
+        { id: 'ext-fans-argb', name: 'Pack 3x Ventiladores ARGB 120mm Alto Flujo', price: 34.00, tempDelta: 3.0, improvesAirflow: true, specs: '3 ventiladores PWM ARGB de alto caudal • -3°C CPU y mejora flujo interno de caja' },
+        { id: 'ext-fans-noctua', name: 'Pack 3x Ventiladores Noctua NF-A12x25', price: 89.00, tempDelta: 4.0, improvesAirflow: true, specs: '3 ventiladores de referencia silenciosos • Reduce temperatura CPU en -4°C' }
+      ],
+
+      // 10. Monitores - 6 modelos
+      monitors: [
+        { id: 'mon-lg-qhd', name: 'LG UltraGear 27" QHD 180Hz IPS', price: 279.00, hz: 180, res: '2560x1440', specs: '27" IPS • QHD 2560x1440 • 180Hz • 1ms GtG • HDR10' },
+        { id: 'mon-rog-oled', name: 'ASUS ROG Swift 27" OLED 240Hz', price: 849.00, hz: 240, res: '2560x1440', specs: '27" OLED • QHD 2560x1440 • 240Hz • 0.03ms • Contraste Infinito' },
+        { id: 'mon-m28u-4k', name: 'Gigabyte M28U 28" 4K 144Hz IPS', price: 469.00, hz: 144, res: '3840x2160', specs: '28" SuperSpeed IPS • 4K UHD 3840x2160 • 144Hz • HDMI 2.1 + KVM' },
+        { id: 'mon-aoc-24g4', name: 'AOC 24G4 24" FullHD 180Hz IPS', price: 139.00, hz: 180, res: '1920x1080', specs: '24" Fast IPS • FullHD 1920x1080 • 180Hz • 0.5ms MPRT' },
+        { id: 'mon-dell-4k', name: 'Dell UltraSharp 27" 4K USB-C Profesional', price: 495.00, hz: 60, res: '3840x2160', specs: '27" IPS Black • 4K UHD • 98% DCI-P3 Calibrado • Hub USB-C 90W' },
+        { id: 'mon-g5-uw', name: 'Samsung Odyssey G5 34" Ultrawide WQHD', price: 329.00, hz: 165, res: '3440x1440', specs: '34" Curvo 1000R • Ultrawide 3440x1440 • 165Hz • 1ms' }
+      ],
+
+      // 11. Periféricos - 8 modelos
+      peripherals: [
+        { id: 'per-keychron-q1', name: 'Teclado Mecánico Keychron Q1 Pro Wireless', price: 189.00, kind: 'keyboard', specs: 'Formato 75% • Chasis Aluminio CNC • Inalámbrico Bluetooth / USB-C' },
+        { id: 'per-gprox-tkl', name: 'Teclado Logitech G Pro X TKL', price: 165.00, kind: 'keyboard', specs: 'Formato Tenkeyless • Inalámbrico LIGHTSPEED • Switches táctiles' },
+        { id: 'per-gprox-sl2', name: 'Ratón Logitech G Pro X Superlight 2', price: 139.00, kind: 'mouse', specs: 'Ultraligero 60g • Sensor HERO 2 32.000 DPI • Inalámbrico LIGHTSPEED' },
+        { id: 'per-dav3-pro', name: 'Ratón Razer DeathAdder V3 Pro', price: 135.00, kind: 'mouse', specs: 'Ergonómico 63g • Sensor Óptico Focus Pro 30K DPI • Inalámbrico' },
+        { id: 'per-cloud3', name: 'Auriculares HyperX Cloud III Wireless', price: 135.00, kind: 'headset', specs: 'Inalámbricos 2.4GHz • Drivers 53mm • Autonomía 120 horas' },
+        { id: 'per-nova7', name: 'Auriculares SteelSeries Arctis Nova 7', price: 149.00, kind: 'headset', specs: 'Inalámbricos Duales 2.4GHz + Bluetooth • Audio Espacial 360°' },
+        { id: 'per-pad-xxl', name: 'Alfombrilla XXL Control Pro', price: 29.00, kind: 'pad', specs: '900x400x4mm • Superficie microtejida de precisión • Base antideslizante' },
+        { id: 'per-brio-4k', name: 'Webcam Logitech Brio 4K', price: 169.00, kind: 'webcam', specs: 'Resolución 4K Ultra HD • HDR • Doble micrófono omnidireccional' }
+      ]
+    };
+
+    // -------------------------------------------------------------------------
+    // 3. IDENTIDAD INMUTABLE DEL ALUMNO Y ESTADO GLOBAL (INICIA VACÍO: 0 PIEZAS)
+    // -------------------------------------------------------------------------
+    let studentIdentity = null;
+
+    let build = {
+      cpu: null,
+      motherboard: null,
+      ram: null,
+      gpu: null,
+      cooler: null,
+      storage: [],
+      psu: null,
+      case: null,
+      cooling_extras: [],
+      monitors: [],
+      peripherals: []
+    };
+
+    let justifications = {};
+    let componentImages = {};
+    let activeCategory = 'cpu';
+    let searchQuery = '';
+    let sortOrder = 'default';
+
+    // -------------------------------------------------------------------------
+    // 4. REGISTRO Y SELLADO DE IDENTIDAD DEL ALUMNO/A
+    // -------------------------------------------------------------------------
+    function submitStudentIdentity(event) {
+      if (event) event.preventDefault();
+      if (studentIdentity) return;
+
+      const nameInput = document.getElementById('input-student-name');
+      const groupInput = document.getElementById('input-student-group');
+      const errorBox = document.getElementById('login-error-msg');
+
+      const rawName = nameInput ? nameInput.value.trim().replace(/\s+/g, ' ') : '';
+      const rawGroup = groupInput ? groupInput.value.trim().replace(/\s+/g, ' ') : '';
+
+      if (rawName.length < 3) {
+        if (errorBox) errorBox.classList.remove('hidden');
+        if (nameInput) nameInput.focus();
+        return;
+      }
+
+      if (errorBox) errorBox.classList.add('hidden');
+
+      studentIdentity = Object.freeze({
+        fullName: rawName,
+        group: rawGroup || 'Sin especificar',
+        lockedAt: new Date().toISOString()
+      });
+
+      const hdrNameEl = document.getElementById('hdr-student-name');
+      if (hdrNameEl) {
+        hdrNameEl.textContent = rawGroup ? `${rawName} (${rawGroup})` : rawName;
+      }
+
+      const loginModal = document.getElementById('student-login-modal');
+      if (loginModal) {
+        loginModal.classList.add('hidden');
+      }
+
+      refreshAllViews();
+      showToast(`Sesión iniciada para ${rawName}`);
+    }
+
+    // -------------------------------------------------------------------------
+    // 5. UTILIDADES DE FORMATO Y SEGURIDAD
+    // -------------------------------------------------------------------------
+    function formatEuro(value) {
+      const num = Number(value) || 0;
+      return num.toLocaleString('es-ES', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }) + ' €';
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function sanitizeFileName(str) {
+      return String(str || 'Alumno')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9_-]+/g, '_')
+        .replace(/^_+|_+$/g, '') || 'Alumno';
+    }
+
+    let toastTimer = null;
+    function showToast(message) {
+      const toast = document.getElementById('toast-notification');
+      const msgEl = document.getElementById('toast-message');
+      if (!toast || !msgEl) return;
+
+      msgEl.textContent = message;
+      toast.classList.remove('opacity-0', 'translate-y-2');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-2');
+      }, 2800);
+    }
+
+    // -------------------------------------------------------------------------
+    // 6. CÁLCULO DE TOTALES Y DISTRIBUCIÓN DEL PRESUPUESTO (IGIC 7%)
+    // -------------------------------------------------------------------------
+    function calculateTotals() {
+      const flat = [];
+      let baseSum = 0;
+      let totalUnits = 0;
+
+      const groupTotals = {
+        coreCompute: 0,
+        boardMemory: 0,
+        chassisPower: 0,
+        peripheralsAll: 0
+      };
+
+      CATEGORIES.forEach(cat => {
+        if (cat.isMulti) {
+          const list = build[cat.key] || [];
+          list.forEach(entry => {
+            const lineBase = +(entry.item.price * entry.qty).toFixed(2);
+            baseSum += lineBase;
+            totalUnits += entry.qty;
+            flat.push({
+              catKey: cat.key,
+              catLabel: cat.label,
+              isMulti: true,
+              item: entry.item,
+              qty: entry.qty
+            });
+
+            if (cat.key === 'storage') groupTotals.boardMemory += lineBase;
+            else if (cat.key === 'cooling_extras') groupTotals.chassisPower += lineBase;
+            else if (cat.key === 'monitors' || cat.key === 'peripherals') groupTotals.peripheralsAll += lineBase;
+          });
+        } else {
+          const item = build[cat.key];
+          if (item) {
+            const lineBase = +item.price.toFixed(2);
+            baseSum += lineBase;
+            totalUnits += 1;
+            flat.push({
+              catKey: cat.key,
+              catLabel: cat.label,
+              isMulti: false,
+              item,
+              qty: 1
+            });
+
+            if (cat.key === 'cpu' || cat.key === 'gpu') groupTotals.coreCompute += lineBase;
+            else if (cat.key === 'motherboard' || cat.key === 'ram') groupTotals.boardMemory += lineBase;
+            else if (cat.key === 'cooler' || cat.key === 'psu' || cat.key === 'case') groupTotals.chassisPower += lineBase;
+          }
+        }
+      });
+
+      baseSum = +baseSum.toFixed(2);
+      const igicSum = +(baseSum * 0.07).toFixed(2);
+      const grandTotal = +(baseSum + igicSum).toFixed(2);
+
+      const donutSlices = [
+        { label: 'CPU y Gráfica', amount: +groupTotals.coreCompute.toFixed(2), color: '#4f46e5' },
+        { label: 'Placa / RAM / SSD', amount: +groupTotals.boardMemory.toFixed(2), color: '#0ea5e9' },
+        { label: 'Caja / Refrig / PSU', amount: +groupTotals.chassisPower.toFixed(2), color: '#10b981' },
+        { label: 'Monitores / Perif.', amount: +groupTotals.peripheralsAll.toFixed(2), color: '#f59e0b' },
+        { label: 'Cuota IGIC (7%)', amount: igicSum, color: '#8b5cf6' }
+      ];
+
+      return {
+        flat,
+        baseSum,
+        igicSum,
+        grandTotal,
+        totalUnits,
+        donutSlices
+      };
+    }
+
+    // -------------------------------------------------------------------------
+    // 7. RENDERIZADO DE TARJETAS SUPERIORES Y GRÁFICO DONUT SVG
+    // -------------------------------------------------------------------------
+    function renderTopCardsAndDonut(totals) {
+      const { flat, baseSum, igicSum, grandTotal, totalUnits, donutSlices } = totals;
+
+      document.getElementById('hdr-quick-total').textContent = formatEuro(grandTotal);
+      document.getElementById('card-base-amount').textContent = formatEuro(baseSum);
+      document.getElementById('card-igic-amount').textContent = formatEuro(igicSum);
+      document.getElementById('card-total-amount').textContent = formatEuro(grandTotal);
+      document.getElementById('card-units-pill').textContent = `${totalUnits} ${totalUnits === 1 ? 'ud.' : 'uds.'}`;
+
+      const welcomeGuide = document.getElementById('welcome-guide');
+      if (welcomeGuide) {
+        if (flat.length === 0) welcomeGuide.classList.remove('hidden');
+        else welcomeGuide.classList.add('hidden');
+      }
+
+      const svg = document.getElementById('budget-donut-svg');
+      const legendList = document.getElementById('donut-legend-list');
+      const centerPct = document.getElementById('donut-center-pct');
+      const centerLbl = document.getElementById('donut-center-lbl');
+      const hoverInfo = document.getElementById('donut-hover-info');
+
+      const radius = 32;
+      const circumference = 2 * Math.PI * radius;
+
+      if (grandTotal <= 0) {
+        svg.innerHTML = `<circle cx="42" cy="42" r="${radius}" fill="none" stroke="#f1f5f9" stroke-width="11"></circle>`;
+        centerPct.textContent = '0%';
+        centerLbl.textContent = 'Vacío';
+        hoverInfo.textContent = 'Incluye IGIC 7%';
+        legendList.innerHTML = donutSlices.map(slice => `
+          <div class="flex items-center justify-between gap-1 text-slate-400">
+            <span class="flex items-center gap-1.5 truncate">
+              <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:${slice.color}"></span>
+              <span class="truncate">${escapeHtml(slice.label)}</span>
+            </span>
+            <span class="font-mono">0%</span>
+          </div>
+        `).join('');
+        return;
+      }
+
+      let cumulativeOffset = 0;
+      let circlesHtml = `<circle cx="42" cy="42" r="${radius}" fill="none" stroke="#f1f5f9" stroke-width="11"></circle>`;
+
+      donutSlices.forEach((slice, idx) => {
+        if (slice.amount <= 0) return;
+        const pct = (slice.amount / grandTotal) * 100;
+        const dashLength = (slice.amount / grandTotal) * circumference;
+        const dashOffset = -cumulativeOffset;
+        cumulativeOffset += dashLength;
+
+        circlesHtml += `
+          <circle
+            cx="42"
+            cy="42"
+            r="${radius}"
+            fill="none"
+            stroke="${slice.color}"
+            stroke-width="11"
+            stroke-dasharray="${dashLength.toFixed(2)} ${circumference.toFixed(2)}"
+            stroke-dashoffset="${dashOffset.toFixed(2)}"
+            class="donut-segment"
+            onmouseenter="highlightDonutSegment(${idx}, '${escapeHtml(slice.label)}', ${Math.round(pct)}, '${formatEuro(slice.amount)}')"
+            onmouseleave="resetDonutCenter()"
+          ></circle>
+        `;
+      });
+
+      svg.innerHTML = circlesHtml;
+      centerPct.textContent = '100%';
+      centerLbl.textContent = 'Total';
+      hoverInfo.textContent = 'Incluye IGIC 7%';
+
+      legendList.innerHTML = donutSlices.map((slice, idx) => {
+        const pct = Math.round((slice.amount / grandTotal) * 100);
+        return `
+          <div
+            class="flex items-center justify-between gap-1 cursor-pointer hover:text-slate-900 transition ${slice.amount > 0 ? 'text-slate-700 font-medium' : 'text-slate-400'}"
+            onmouseenter="highlightDonutSegment(${idx}, '${escapeHtml(slice.label)}', ${pct}, '${formatEuro(slice.amount)}')"
+            onmouseleave="resetDonutCenter()"
+          >
+            <span class="flex items-center gap-1.5 truncate">
+              <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:${slice.color}"></span>
+              <span class="truncate">${escapeHtml(slice.label)}</span>
+            </span>
+            <span class="font-mono font-semibold">${pct}%</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function highlightDonutSegment(idx, label, pct, amountStr) {
+      const centerPct = document.getElementById('donut-center-pct');
+      const centerLbl = document.getElementById('donut-center-lbl');
+      const hoverInfo = document.getElementById('donut-hover-info');
+      if (centerPct) centerPct.textContent = `${pct}%`;
+      if (centerLbl) centerLbl.textContent = label.split(' ')[0];
+      if (hoverInfo) hoverInfo.textContent = `${label}: ${amountStr}`;
+    }
+
+    function resetDonutCenter() {
+      const centerPct = document.getElementById('donut-center-pct');
+      const centerLbl = document.getElementById('donut-center-lbl');
+      const hoverInfo = document.getElementById('donut-hover-info');
+      if (centerPct) centerPct.textContent = '100%';
+      if (centerLbl) centerLbl.textContent = 'Total';
+      if (hoverInfo) hoverInfo.textContent = 'Incluye IGIC 7%';
+    }
+
+    // -------------------------------------------------------------------------
+    // 8. ESQUEMA INTERACTIVO SVG DEL HARDWARE Y ESCRITORIO (NEUTRAL)
+    // -------------------------------------------------------------------------
+    function renderBlueprintSVG(totals) {
+      const pill = document.getElementById('blueprint-selected-pill');
+      if (pill) {
+        pill.textContent = `${totals.totalUnits} ${totals.totalUnits === 1 ? 'componente seleccionado' : 'componentes seleccionados'}`;
+      }
+
+      // Caja
+      const caseOuter = document.getElementById('bp-case-outer');
+      const caseLabel = document.getElementById('bp-case-label');
+      if (build.case) {
+        caseOuter.setAttribute('stroke', '#4f46e5');
+        caseLabel.textContent = `CAJA: ${build.case.name}`;
+        caseLabel.setAttribute('fill', '#4f46e5');
+      } else {
+        caseOuter.setAttribute('stroke', '#94a3b8');
+        caseLabel.textContent = 'CAJA / CHASIS (Clic para elegir)';
+        caseLabel.setAttribute('fill', '#64748b');
+      }
+
+      // Extras térmicos
+      const extrasBox = document.getElementById('bp-extras-box');
+      const extrasLabel = document.getElementById('bp-extras-label');
+      if (build.cooling_extras && build.cooling_extras.length > 0) {
+        const count = build.cooling_extras.reduce((acc, e) => acc + e.qty, 0);
+        extrasBox.setAttribute('fill', '#dbeafe');
+        extrasBox.setAttribute('stroke', '#2563eb');
+        extrasLabel.textContent = `+${count}`;
+      } else {
+        extrasBox.setAttribute('fill', '#e2e8f0');
+        extrasBox.setAttribute('stroke', '#94a3b8');
+        extrasLabel.textContent = 'Vent.';
+      }
+
+      // Placa base
+      const moboRect = document.getElementById('bp-mobo-rect');
+      const moboLabel = document.getElementById('bp-mobo-label');
+      if (build.motherboard) {
+        moboRect.setAttribute('fill', '#e0e7ff');
+        moboRect.setAttribute('stroke', '#4f46e5');
+        moboRect.removeAttribute('stroke-dasharray');
+        moboLabel.textContent = `${build.motherboard.name} (${build.motherboard.socket})`;
+      } else {
+        moboRect.setAttribute('fill', '#eef2ff');
+        moboRect.setAttribute('stroke', '#a5b4fc');
+        moboRect.setAttribute('stroke-dasharray', '4 2');
+        moboLabel.textContent = 'PLACA BASE';
+      }
+
+      // CPU
+      const cpuBox = document.getElementById('bp-cpu-box');
+      const cpuLabel = document.getElementById('bp-cpu-label');
+      if (build.cpu) {
+        cpuBox.setAttribute('fill', '#c7d2fe');
+        cpuBox.setAttribute('stroke', '#4338ca');
+        cpuLabel.textContent = build.cpu.socket;
+      } else {
+        cpuBox.setAttribute('fill', '#e2e8f0');
+        cpuBox.setAttribute('stroke', '#94a3b8');
+        cpuLabel.textContent = 'Sin elegir';
+      }
+
+      // Cooler
+      const coolerBox = document.getElementById('bp-cooler-box');
+      const coolerLabel = document.getElementById('bp-cooler-label');
+      if (build.cooler) {
+        coolerBox.setAttribute('fill', '#bae6fd');
+        coolerBox.setAttribute('stroke', '#0284c7');
+        coolerLabel.textContent = build.cooler.type === 'AIO' ? `AIO ${build.cooler.radiatorSize}` : `${build.cooler.tdpRating}W`;
+      } else {
+        coolerBox.setAttribute('fill', '#e2e8f0');
+        coolerBox.setAttribute('stroke', '#94a3b8');
+        coolerLabel.textContent = 'Sin elegir';
+      }
+
+      // RAM
+      const ram1 = document.getElementById('bp-ram-1');
+      const ram2 = document.getElementById('bp-ram-2');
+      const ramLabel = document.getElementById('bp-ram-label');
+      if (build.ram) {
+        ram1.setAttribute('fill', '#818cf8');
+        ram1.setAttribute('stroke', '#4338ca');
+        if (build.ram.modules >= 2) {
+          ram2.setAttribute('fill', '#818cf8');
+          ram2.setAttribute('stroke', '#4338ca');
+        } else {
+          ram2.setAttribute('fill', '#e2e8f0');
+          ram2.setAttribute('stroke', '#94a3b8');
+        }
+        ramLabel.textContent = `${build.ram.capacity}GB ${build.ram.ramType}`;
+      } else {
+        ram1.setAttribute('fill', '#cbd5e1');
+        ram1.setAttribute('stroke', '#94a3b8');
+        ram2.setAttribute('fill', '#cbd5e1');
+        ram2.setAttribute('stroke', '#94a3b8');
+        ramLabel.textContent = 'RAM';
+      }
+
+      // Almacenamiento
+      const ssdRect = document.getElementById('bp-ssd-rect');
+      const ssdLabel = document.getElementById('bp-ssd-label');
+      if (build.storage && build.storage.length > 0) {
+        const units = build.storage.reduce((acc, s) => acc + s.qty, 0);
+        ssdRect.setAttribute('fill', '#bbf7d0');
+        ssdRect.setAttribute('stroke', '#16a34a');
+        ssdLabel.textContent = `${units}x SSD / NVMe`;
+      } else {
+        ssdRect.setAttribute('fill', '#e2e8f0');
+        ssdRect.setAttribute('stroke', '#94a3b8');
+        ssdLabel.textContent = 'SSD / NVMe';
+      }
+
+      // GPU
+      const gpuRect = document.getElementById('bp-gpu-rect');
+      const gpuLabel = document.getElementById('bp-gpu-label');
+      if (build.gpu) {
+        gpuRect.setAttribute('fill', '#ddd6fe');
+        gpuRect.setAttribute('stroke', '#6d28d9');
+        gpuLabel.textContent = `${build.gpu.name} (${build.gpu.length}mm)`;
+      } else {
+        gpuRect.setAttribute('fill', '#e2e8f0');
+        gpuRect.setAttribute('stroke', '#94a3b8');
+        gpuLabel.textContent = 'TARJETA GRÁFICA GPU';
+      }
+
+      // PSU
+      const psuRect = document.getElementById('bp-psu-rect');
+      const psuLabel = document.getElementById('bp-psu-label');
+      if (build.psu) {
+        psuRect.setAttribute('fill', '#fef08a');
+        psuRect.setAttribute('stroke', '#ca8a04');
+        psuLabel.textContent = `PSU ${build.psu.wattage}W (${build.psu.efficiency})`;
+      } else {
+        psuRect.setAttribute('fill', '#e2e8f0');
+        psuRect.setAttribute('stroke', '#94a3b8');
+        psuLabel.textContent = 'FUENTE PSU';
+      }
+
+      // Monitor
+      const monScreen = document.getElementById('bp-monitor-screen');
+      const monLabel = document.getElementById('bp-monitor-label');
+      const monSub = document.getElementById('bp-monitor-sub');
+      if (build.monitors && build.monitors.length > 0) {
+        const firstMon = build.monitors[0].item;
+        const totalMons = build.monitors.reduce((acc, m) => acc + m.qty, 0);
+        monScreen.setAttribute('fill', 'url(#screenGradOn)');
+        monLabel.textContent = totalMons > 1 ? `${totalMons}x Monitores (${firstMon.name})` : firstMon.name;
+        monSub.textContent = `${firstMon.res} • ${firstMon.hz}Hz`;
+      } else {
+        monScreen.setAttribute('fill', 'url(#screenGradOff)');
+        monLabel.textContent = 'MONITOR (Sin elegir)';
+        monSub.textContent = 'Haz clic para abrir el catálogo de monitores';
+      }
+
+      // Periféricos
+      const kbdRect = document.getElementById('bp-keyboard');
+      const mouseRect = document.getElementById('bp-mouse');
+      const kbdLabel = document.getElementById('bp-kbd-label');
+      if (build.peripherals && build.peripherals.length > 0) {
+        const totalPer = build.peripherals.reduce((acc, p) => acc + p.qty, 0);
+        kbdRect.setAttribute('fill', '#c7d2fe');
+        kbdRect.setAttribute('stroke', '#4f46e5');
+        mouseRect.setAttribute('fill', '#c7d2fe');
+        mouseRect.setAttribute('stroke', '#4f46e5');
+        kbdLabel.textContent = `${totalPer} PERIFÉRICO(S) CONFIGURADO(S)`;
+      } else {
+        kbdRect.setAttribute('fill', '#cbd5e1');
+        kbdRect.setAttribute('stroke', '#94a3b8');
+        mouseRect.setAttribute('fill', '#cbd5e1');
+        mouseRect.setAttribute('stroke', '#94a3b8');
+        kbdLabel.textContent = 'TECLADO / RATÓN / PERIFÉRICOS';
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 9. CATÁLOGO DE COMPONENTES Y GESTIÓN DEL PRESUPUESTO
+    // -------------------------------------------------------------------------
+    function selectCategory(catKey) {
+      activeCategory = catKey;
+      renderCategoryPills();
+      renderCatalogCards();
+    }
+
+    function onSearchInput(value) {
+      searchQuery = value.trim().toLowerCase();
+      renderCatalogCards();
+    }
+
+    function onSortChange(value) {
+      sortOrder = value;
+      renderCatalogCards();
+    }
+
+    function renderCategoryPills() {
+      const container = document.getElementById('category-pills');
+      if (!container) return;
+
+      container.innerHTML = CATEGORIES.map(cat => {
+        const isActive = cat.key === activeCategory;
+        let hasSelection = false;
+        let badgeCount = 0;
+
+        if (cat.isMulti) {
+          const list = build[cat.key] || [];
+          badgeCount = list.reduce((acc, e) => acc + e.qty, 0);
+          hasSelection = badgeCount > 0;
+        } else {
+          hasSelection = Boolean(build[cat.key]);
+        }
+
+        const baseClasses = isActive
+          ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+          : hasSelection
+            ? 'bg-indigo-50/80 text-indigo-800 border-indigo-200 hover:bg-indigo-100/70'
+            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100';
+
+        return `
+          <button
+            onclick="selectCategory('${cat.key}')"
+            class="px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition flex items-center gap-1.5 ${baseClasses}"
+          >
+            <span>${escapeHtml(cat.label)}</span>
+            ${hasSelection ? `
+              <span class="px-1.5 py-0.2 rounded-full text-[10px] font-bold ${isActive ? 'bg-white/20 text-white' : 'bg-indigo-600 text-white'}">
+                ${cat.isMulti ? badgeCount : '✓'}
+              </span>
+            ` : ''}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderCatalogCards() {
+      const catObj = CATEGORIES.find(c => c.key === activeCategory) || CATEGORIES[0];
+      const titleEl = document.getElementById('cat-header-title');
+      const descEl = document.getElementById('cat-header-desc');
+      const counterEl = document.getElementById('catalog-counter');
+      const gridEl = document.getElementById('catalog-cards-grid');
+
+      if (titleEl) titleEl.textContent = catObj.label;
+      if (descEl) descEl.textContent = `${catObj.desc} • Precios en Base Imponible (€ sin IGIC)`;
+
+      let items = [...(CATALOG[catObj.key] || [])];
+
+      if (searchQuery) {
+        items = items.filter(it =>
+          it.name.toLowerCase().includes(searchQuery) ||
+          it.specs.toLowerCase().includes(searchQuery)
+        );
+      }
+
+      if (sortOrder === 'price-asc') {
+        items.sort((a, b) => a.price - b.price);
+      } else if (sortOrder === 'price-desc') {
+        items.sort((a, b) => b.price - a.price);
+      } else if (sortOrder === 'name-asc') {
+        items.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+      }
+
+      if (counterEl) {
+        counterEl.textContent = `${items.length} ${items.length === 1 ? 'modelo' : 'modelos'}`;
+      }
+
+      if (items.length === 0) {
+        gridEl.innerHTML = `
+          <div class="col-span-full py-10 px-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            <p class="text-xs font-semibold text-slate-600">No se encontraron componentes con el filtro de búsqueda actual.</p>
+          </div>
+        `;
+        return;
+      }
+
+      gridEl.innerHTML = items.map(item => {
+        let isSelected = false;
+        let selectedQty = 0;
+
+        if (catObj.isMulti) {
+          const found = (build[catObj.key] || []).find(e => e.item.id === item.id);
+          if (found) {
+            isSelected = true;
+            selectedQty = found.qty;
+          }
+        } else {
+          isSelected = build[catObj.key] && build[catObj.key].id === item.id;
+        }
+
+        const tags = item.specs.split('•').map(s => s.trim()).filter(Boolean);
+
+        return `
+          <div class="rounded-xl border p-3.5 flex flex-col justify-between gap-3 transition ${isSelected ? 'bg-indigo-50/40 border-indigo-400 shadow-2xs' : 'bg-white border-slate-200/90 hover:border-slate-300'}">
+            <div class="space-y-2">
+              <div class="flex items-start justify-between gap-2">
+                <h4 class="text-xs font-extrabold text-slate-900 leading-snug">${escapeHtml(item.name)}</h4>
+                <span class="font-mono font-extrabold text-xs text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg flex-shrink-0">
+                  ${formatEuro(item.price)}
+                </span>
+              </div>
+
+              <div class="flex flex-wrap gap-1">
+                ${tags.map(tag => `
+                  <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-medium">
+                    ${escapeHtml(tag)}
+                  </span>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="pt-1 flex items-center justify-between gap-2 border-t border-slate-100">
+              <span class="text-[10px] text-slate-400 font-medium">c/IGIC 7%: <strong class="font-mono text-slate-600">${formatEuro(item.price * 1.07)}</strong></span>
+
+              ${catObj.isMulti ? `
+                ${isSelected ? `
+                  <div class="flex items-center gap-1.5">
+                    <button onclick="changeMultiQty('${catObj.key}', '${item.id}', -1)" class="w-7 h-7 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs flex items-center justify-center">-</button>
+                    <span class="px-1.5 font-mono font-bold text-xs text-indigo-700">${selectedQty}</span>
+                    <button onclick="changeMultiQty('${catObj.key}', '${item.id}', 1)" class="w-7 h-7 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center justify-center">+</button>
+                  </div>
+                ` : `
+                  <button onclick="addItemToBudget('${catObj.key}', '${item.id}')" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-indigo-600 text-white font-semibold text-xs transition">
+                    + Añadir
+                  </button>
+                `}
+              ` : `
+                ${isSelected ? `
+                  <button onclick="removeItemFromBudget('${catObj.key}', '${item.id}')" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-rose-600 text-white font-bold text-xs transition">
+                    ✓ Seleccionado
+                  </button>
+                ` : `
+                  <button onclick="addItemToBudget('${catObj.key}', '${item.id}')" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-indigo-600 text-white font-semibold text-xs transition">
+                    Seleccionar
+                  </button>
+                `}
+              `}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function addItemToBudget(catKey, itemId) {
+      const catObj = CATEGORIES.find(c => c.key === catKey);
+      const item = (CATALOG[catKey] || []).find(i => i.id === itemId);
+      if (!catObj || !item) return;
+
+      if (catObj.isMulti) {
+        const existing = build[catKey].find(e => e.item.id === itemId);
+        if (existing) {
+          existing.qty += 1;
+        } else {
+          build[catKey].push({ item, qty: 1 });
+        }
+      } else {
+        build[catKey] = item;
+      }
+
+      if (!justifications[item.id]) {
+        justifications[item.id] = { reason: '', note: '' };
+      }
+
+      refreshAllViews();
+      showToast(`Añadido: ${item.name}`);
+    }
+
+    function removeItemFromBudget(catKey, itemId) {
+      const catObj = CATEGORIES.find(c => c.key === catKey);
+      if (!catObj) return;
+
+      if (catObj.isMulti) {
+        build[catKey] = build[catKey].filter(e => e.item.id !== itemId);
+      } else {
+        build[catKey] = null;
+      }
+
+      refreshAllViews();
+      showToast('Componente eliminado del presupuesto');
+    }
+
+    function changeMultiQty(catKey, itemId, delta) {
+      const list = build[catKey] || [];
+      const idx = list.findIndex(e => e.item.id === itemId);
+      if (idx === -1) return;
+
+      list[idx].qty += delta;
+      if (list[idx].qty <= 0) {
+        list.splice(idx, 1);
+      }
+
+      refreshAllViews();
+    }
+
+    function updateReason(itemId, val) {
+      if (!justifications[itemId]) justifications[itemId] = { reason: '', note: '' };
+      justifications[itemId].reason = val;
+    }
+
+    function updateNote(itemId, val) {
+      if (!justifications[itemId]) justifications[itemId] = { reason: '', note: '' };
+      justifications[itemId].note = val;
+    }
+
+    // Procesa y optimiza una imagen local a JPEG compatible con jsPDF conservando relación de aspecto
+    function handleComponentImageUpload(itemId, event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        showToast('Selecciona un archivo de imagen válido (JPG, PNG, WebP...)');
+        event.target.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function (loadEvent) {
+        const img = new Image();
+        img.onload = function () {
+          try {
+            const maxDim = 420;
+            let targetW = img.width || 300;
+            let targetH = img.height || 300;
+
+            if (targetW > maxDim || targetH > maxDim) {
+              const ratio = Math.min(maxDim / targetW, maxDim / targetH);
+              targetW = Math.round(targetW * ratio);
+              targetH = Math.round(targetH * ratio);
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = targetW;
+            canvas.height = targetH;
+            const ctx = canvas.getContext('2d');
+
+            // Fondo blanco para evitar fondos negros si el PNG original tiene transparencia
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, targetW, targetH);
+            ctx.drawImage(img, 0, 0, targetW, targetH);
+
+            const processedDataUrl = canvas.toDataURL('image/jpeg', 0.86);
+            componentImages[itemId] = {
+              dataUrl: processedDataUrl,
+              width: targetW,
+              height: targetH,
+              fileName: file.name
+            };
+
+            refreshAllViews();
+            showToast(`Imagen cargada: ${file.name}`);
+          } catch (err) {
+            showToast('No se pudo procesar la imagen seleccionada');
+          }
+        };
+        img.onerror = function () {
+          showToast('Error al leer la imagen seleccionada');
+        };
+        img.src = loadEvent.target.result;
+      };
+      reader.onerror = function () {
+        showToast('Error al cargar el archivo local');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeComponentImage(itemId) {
+      if (componentImages[itemId]) {
+        delete componentImages[itemId];
+        refreshAllViews();
+        showToast('Imagen del componente eliminada');
+      }
+    }
+
+    function requestResetBuild() {
+      const modal = document.getElementById('reset-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeResetModal() {
+      const modal = document.getElementById('reset-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function confirmResetBuild() {
+      build = {
+        cpu: null,
+        motherboard: null,
+        ram: null,
+        gpu: null,
+        cooler: null,
+        storage: [],
+        psu: null,
+        case: null,
+        cooling_extras: [],
+        monitors: [],
+        peripherals: []
+      };
+      justifications = {};
+      componentImages = {};
+      closeResetModal();
+      refreshAllViews();
+      showToast('Componentes vaciados (identidad del alumno conservada)');
+    }
+
+    function renderBudgetList(totals) {
+      const { flat, baseSum, igicSum, grandTotal, totalUnits } = totals;
+      const listEl = document.getElementById('budget-items-list');
+      const badgeEl = document.getElementById('budget-count-badge');
+
+      if (badgeEl) {
+        badgeEl.textContent = `${totalUnits} ${totalUnits === 1 ? 'artículo' : 'artículos'}`;
+      }
+      document.getElementById('summary-base').textContent = formatEuro(baseSum);
+      document.getElementById('summary-igic').textContent = formatEuro(igicSum);
+      document.getElementById('summary-total').textContent = formatEuro(grandTotal);
+
+      if (flat.length === 0) {
+        listEl.innerHTML = `
+          <div class="py-10 px-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 space-y-1.5">
+            <p class="text-xs font-bold text-slate-700">Todavía no has añadido ningún componente</p>
+            <p class="text-[11px] text-slate-500">Selecciona piezas desde el catálogo de la izquierda para construir tu equipo.</p>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = flat.map(row => {
+        const lineBase = +(row.item.price * row.qty).toFixed(2);
+        const lineTotal = +(lineBase * 1.07).toFixed(2);
+        const sharePct = grandTotal > 0 ? Math.round((lineTotal / grandTotal) * 100) : 0;
+        const jData = justifications[row.item.id] || { reason: '', note: '' };
+        const imgData = componentImages[row.item.id] || null;
+
+        return `
+          <div class="bg-slate-50/80 border border-slate-200/90 rounded-xl p-3 space-y-2.5">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-600 block">${escapeHtml(row.catLabel)}</span>
+                <h4 class="text-xs font-extrabold text-slate-900 truncate" title="${escapeHtml(row.item.name)}">${escapeHtml(row.item.name)}</h4>
+                <div class="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500">
+                  <span>Base: <strong class="font-mono text-slate-700">${formatEuro(lineBase)}</strong></span>
+                  <span>•</span>
+                  <span>c/IGIC: <strong class="font-mono text-indigo-700">${formatEuro(lineTotal)}</strong></span>
+                  <span>(${sharePct}%)</span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-1 flex-shrink-0">
+                ${row.isMulti ? `
+                  <button onclick="changeMultiQty('${row.catKey}', '${row.item.id}', -1)" class="w-6 h-6 rounded-md bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center">-</button>
+                  <span class="px-1.5 font-mono font-bold text-xs text-slate-800">${row.qty}</span>
+                  <button onclick="changeMultiQty('${row.catKey}', '${row.item.id}', 1)" class="w-6 h-6 rounded-md bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center">+</button>
+                ` : ''}
+                <button onclick="removeItemFromBudget('${row.catKey}', '${row.item.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Eliminar componente">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Barra visual de peso en el presupuesto -->
+            <div class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+              <div class="h-full bg-indigo-500 rounded-full" style="width: ${Math.max(sharePct, 2)}%"></div>
+            </div>
+
+            <!-- Carga de imagen ilustrativa local para el componente -->
+            <div class="bg-white border border-slate-200/90 rounded-lg p-2">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[10px] font-bold text-slate-700 flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  Imagen ilustrativa (aparece en el PDF)
+                </span>
+                ${imgData ? `
+                  <div class="flex items-center gap-1.5">
+                    <label class="cursor-pointer px-2 py-0.5 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-[10px] transition">
+                      Cambiar
+                      <input type="file" accept="image/*" class="hidden" onchange="handleComponentImageUpload('${row.item.id}', event)">
+                    </label>
+                    <button type="button" onclick="removeComponentImage('${row.item.id}')" class="px-2 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold text-[10px] transition">
+                      Quitar
+                    </button>
+                  </div>
+                ` : ''}
+              </div>
+
+              ${imgData ? `
+                <div class="flex items-center gap-2.5 bg-slate-50 border border-slate-200/80 rounded-lg p-1.5">
+                  <img src="${imgData.dataUrl}" alt="${escapeHtml(row.item.name)}" class="w-16 h-14 object-contain bg-white rounded border border-slate-200 flex-shrink-0">
+                  <div class="min-w-0 flex-1">
+                    <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(imgData.fileName)}">${escapeHtml(imgData.fileName)}</p>
+                    <p class="text-[10px] text-emerald-700 font-medium mt-0.5">Lista para incluir en el informe PDF</p>
+                  </div>
+                </div>
+              ` : `
+                <label class="cursor-pointer flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-dashed border-slate-300 hover:border-indigo-400 bg-slate-50/70 hover:bg-indigo-50/40 text-slate-600 hover:text-indigo-700 transition">
+                  <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                  <span class="text-[11px] font-semibold">Subir imagen local del componente</span>
+                  <input type="file" accept="image/*" class="hidden" onchange="handleComponentImageUpload('${row.item.id}', event)">
+                </label>
+              `}
+            </div>
+
+            <!-- Campos editables vacíos para que el alumno redacte su defensa técnica -->
+            <div class="grid grid-cols-1 gap-2 pt-1">
+              <div>
+                <label class="text-[10px] font-bold text-slate-700 block mb-0.5">Motivo de elección (Alumno/a)</label>
+                <textarea
+                  rows="2"
+                  oninput="updateReason('${row.item.id}', this.value)"
+                  placeholder="Explica por qué has elegido este modelo para el uso previsto del equipo..."
+                  class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 resize-y"
+                >${escapeHtml(jData.reason)}</textarea>
+              </div>
+              <div>
+                <label class="text-[10px] font-bold text-sky-800 block mb-0.5">Justificación técnica de compatibilidad (Alumno/a)</label>
+                <textarea
+                  rows="2"
+                  oninput="updateNote('${row.item.id}', this.value)"
+                  placeholder="Justifica técnicamente su compatibilidad (socket, DDR4/DDR5, mm, TDP, potencia W)..."
+                  class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500 resize-y"
+                >${escapeHtml(jData.note)}</textarea>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // -------------------------------------------------------------------------
+    // 10. VISTA PREVIA DEL INFORME Y DESCARGA DE PDF OFICIAL DE EVALUACIÓN
+    // -------------------------------------------------------------------------
+    function openReportPreviewModal() {
+      const totals = calculateTotals();
+      const { flat, baseSum, igicSum, grandTotal, totalUnits } = totals;
+
+      const studentName = studentIdentity ? studentIdentity.fullName : 'Alumno/a sin identificar';
+      const studentGroup = studentIdentity ? studentIdentity.group : 'Sin especificar';
+      const nowStr = new Date().toLocaleString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      document.getElementById('modal-student-header').innerHTML = `
+        <div class="flex flex-wrap items-center gap-4">
+          <div>
+            <span class="text-[10px] font-bold uppercase text-slate-500 block">Alumno/a Evaluado (Identidad Sellada)</span>
+            <span class="font-extrabold text-slate-900 text-sm">${escapeHtml(studentName)}</span>
+          </div>
+          <div class="h-6 w-px bg-slate-300 hidden sm:block"></div>
+          <div>
+            <span class="text-[10px] font-bold uppercase text-slate-500 block">Curso / Grupo</span>
+            <span class="font-bold text-slate-800">${escapeHtml(studentGroup)}</span>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="text-[10px] font-bold uppercase text-slate-500 block">Fecha y Hora del Informe</span>
+          <span class="font-mono font-semibold text-slate-700">${escapeHtml(nowStr)}</span>
+        </div>
+      `;
+
+      const tbody = document.getElementById('modal-table-tbody');
+      if (flat.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="py-8 px-4 text-center text-slate-500 italic">No hay componentes añadidos todavía al presupuesto.</td>
+          </tr>
+        `;
+      } else {
+        tbody.innerHTML = flat.map(row => {
+          const lineBase = +(row.item.price * row.qty).toFixed(2);
+          const lineIgic = +(lineBase * 0.07).toFixed(2);
+          const lineTotal = +(lineBase + lineIgic).toFixed(2);
+          const jData = justifications[row.item.id] || { reason: '', note: '' };
+          const imgData = componentImages[row.item.id] || null;
+
+          return `
+            <tr class="hover:bg-slate-50/70 align-top">
+              <td class="py-2.5 px-3 border-r border-slate-200 font-bold text-slate-800">${escapeHtml(row.catLabel)}</td>
+              <td class="py-2 px-2 border-r border-slate-200 text-center align-middle">
+                ${imgData
+                  ? `<img src="${imgData.dataUrl}" alt="${escapeHtml(row.item.name)}" class="w-20 h-16 object-contain mx-auto rounded border border-slate-200 bg-white p-0.5">`
+                  : `<span class="text-[10px] text-slate-400 italic">Sin imagen</span>`
+                }
+              </td>
+              <td class="py-2.5 px-3 border-r border-slate-200">
+                <div class="font-bold text-slate-900">${escapeHtml(row.item.name)}</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">${escapeHtml(row.item.specs)}</div>
+              </td>
+              <td class="py-2.5 px-3 border-r border-slate-200 text-center font-mono font-bold">${row.qty}</td>
+              <td class="py-2.5 px-3 border-r border-slate-200 text-right font-mono">${formatEuro(lineBase)}</td>
+              <td class="py-2.5 px-3 border-r border-slate-200 text-right font-mono text-indigo-700">${formatEuro(lineIgic)}</td>
+              <td class="py-2.5 px-3 border-r border-slate-200 text-right font-mono font-bold text-slate-900">${formatEuro(lineTotal)}</td>
+              <td class="py-2.5 px-3 border-r border-slate-200 bg-indigo-50/20 text-slate-700 whitespace-pre-wrap">${jData.reason ? escapeHtml(jData.reason) : '<span class="text-slate-400 italic">Sin cumplimentar</span>'}</td>
+              <td class="py-2.5 px-3 bg-sky-50/20 text-slate-700 whitespace-pre-wrap">${jData.note ? escapeHtml(jData.note) : '<span class="text-slate-400 italic">Sin cumplimentar</span>'}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      document.getElementById('modal-table-tfoot').innerHTML = `
+        <tr>
+          <td colspan="3" class="py-3 px-3 border-r border-slate-200 text-right uppercase tracking-wider">Totales Presupuesto (IGIC 7% Incluido)</td>
+          <td class="py-3 px-3 border-r border-slate-200 text-center font-mono">${totalUnits}</td>
+          <td class="py-3 px-3 border-r border-slate-200 text-right font-mono">${formatEuro(baseSum)}</td>
+          <td class="py-3 px-3 border-r border-slate-200 text-right font-mono text-indigo-700">${formatEuro(igicSum)}</td>
+          <td class="py-3 px-3 border-r border-slate-200 text-right font-mono text-sm text-indigo-700">${formatEuro(grandTotal)}</td>
+          <td colspan="2" class="py-3 px-3 text-[11px] font-normal text-slate-500">Documento listo para descarga en PDF</td>
+        </tr>
+      `;
+
+      const modal = document.getElementById('report-preview-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeReportPreviewModal() {
+      const modal = document.getElementById('report-preview-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function exportToPDF() {
+      if (!studentIdentity) {
+        showToast('Debes identificarte antes de generar el PDF');
+        return;
+      }
+
+      const totals = calculateTotals();
+      const { flat, baseSum, igicSum, grandTotal, totalUnits } = totals;
+
+      if (flat.length === 0) {
+        showToast('Añade al menos un componente antes de descargar el PDF');
+        return;
+      }
+
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        openReportPreviewModal();
+        window.print();
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+      const studentName = studentIdentity.fullName;
+      const studentGroup = studentIdentity.group;
+      const nowStr = new Date().toLocaleString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      // 1. Cabecera institucional del documento
+      doc.setFillColor(79, 70, 229);
+      doc.rect(0, 0, 297, 22, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text('INFORME DE EVALUACIÓN — CONFIGURACIÓN Y PRESUPUESTO DE EQUIPO PC', 14, 10.5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text('PC Studio Builder • Régimen Fiscal Aplicado: IGIC (7%)', 14, 16.5);
+      doc.text(`Emitido: ${nowStr}`, 283, 16.5, { align: 'right' });
+
+      // 2. Bloque de identidad sellada del alumno/a
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(203, 213, 225);
+      doc.roundedRect(14, 26, 269, 13, 2, 2, 'FD');
+
+      doc.setTextColor(71, 85, 105);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.text('ALUMNO/A EVALUADO:', 18, 31.5);
+      doc.text('CURSO / GRUPO:', 165, 31.5);
+
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text(studentName, 18, 36.5);
+      doc.text(studentGroup, 165, 36.5);
+
+      // 3. Resumen económico
+      doc.setFillColor(238, 242, 255);
+      doc.setDrawColor(199, 210, 254);
+      doc.roundedRect(14, 41.5, 269, 9.5, 1.5, 1.5, 'FD');
+
+      doc.setFontSize(8.5);
+      doc.setTextColor(30, 41, 59);
+      doc.text(`Componentes totales: ${totalUnits} uds.`, 18, 47.5);
+      doc.text(`Base Imponible: ${formatEuro(baseSum)}`, 92, 47.5);
+      doc.text(`Cuota IGIC (7%): ${formatEuro(igicSum)}`, 162, 47.5);
+      doc.setTextColor(67, 56, 202);
+      doc.text(`TOTAL CON IGIC: ${formatEuro(grandTotal)}`, 279, 47.5, { align: 'right' });
+
+      // 4. Tabla de Componentes, Imágenes y Justificaciones del Alumno/a
+      const rowImages = flat.map(row => componentImages[row.item.id] || null);
+
+      const tableBody = flat.map(row => {
+        const lineBase = +(row.item.price * row.qty).toFixed(2);
+        const lineIgic = +(lineBase * 0.07).toFixed(2);
+        const lineTotal = +(lineBase + lineIgic).toFixed(2);
+        const jData = justifications[row.item.id] || { reason: '', note: '' };
+
+        return [
+          row.catLabel,
+          '',
+          `${row.item.name}\n(${row.item.specs})`,
+          String(row.qty),
+          formatEuro(lineBase),
+          formatEuro(lineIgic),
+          formatEuro(lineTotal),
+          jData.reason.trim() || '— Sin cumplimentar —',
+          jData.note.trim() || '— Sin cumplimentar —'
+        ];
+      });
+
+      doc.autoTable({
+        startY: 54,
+        margin: { left: 14, right: 14 },
+        head: [[
+          'Categoría',
+          'Imagen',
+          'Componente y Especificaciones',
+          'Uds.',
+          'Base (€)',
+          'IGIC 7% (€)',
+          'Total (€)',
+          'Motivo de elección',
+          'Justificación de compatibilidad'
+        ]],
+        body: tableBody,
+        foot: [[
+          'TOTALES PRESUPUESTO (IGIC 7% INCLUIDO)',
+          '',
+          '',
+          String(totalUnits),
+          formatEuro(baseSum),
+          formatEuro(igicSum),
+          formatEuro(grandTotal),
+          '',
+          ''
+        ]],
+        theme: 'grid',
+        styles: {
+          font: 'helvetica',
+          fontSize: 7.4,
+          cellPadding: 2.2,
+          textColor: [15, 23, 42],
+          lineColor: [203, 213, 225],
+          lineWidth: 0.2,
+          overflow: 'linebreak',
+          valign: 'top'
+        },
+        headStyles: {
+          fillColor: [79, 70, 229],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 7.6
+        },
+        footStyles: {
+          fillColor: [241, 245, 249],
+          textColor: [15, 23, 42],
+          fontStyle: 'bold',
+          fontSize: 7.8
+        },
+        columnStyles: {
+          0: { cellWidth: 24, fontStyle: 'bold' },
+          1: { cellWidth: 24, halign: 'center', valign: 'middle' },
+          2: { cellWidth: 50 },
+          3: { cellWidth: 9, halign: 'center' },
+          4: { cellWidth: 19, halign: 'right' },
+          5: { cellWidth: 19, halign: 'right' },
+          6: { cellWidth: 20, halign: 'right', fontStyle: 'bold' },
+          7: { cellWidth: 51 },
+          8: { cellWidth: 53 }
+        },
+        didParseCell: function (data) {
+          if (data.section === 'body' && rowImages[data.row.index]) {
+            data.cell.styles.minCellHeight = 20;
+          }
+        },
+        didDrawCell: function (data) {
+          if (data.section === 'body' && data.column.index === 1) {
+            const img = rowImages[data.row.index];
+            if (img && img.dataUrl) {
+              const pad = 1.6;
+              const availW = data.cell.width - pad * 2;
+              const availH = data.cell.height - pad * 2;
+              const scale = Math.min(availW / img.width, availH / img.height);
+              const drawW = img.width * scale;
+              const drawH = img.height * scale;
+              const drawX = data.cell.x + (data.cell.width - drawW) / 2;
+              const drawY = data.cell.y + (data.cell.height - drawH) / 2;
+              doc.addImage(img.dataUrl, 'JPEG', drawX, drawY, drawW, drawH);
+            } else {
+              doc.setFontSize(6.5);
+              doc.setTextColor(148, 163, 184);
+              doc.text(
+                'Sin imagen',
+                data.cell.x + data.cell.width / 2,
+                data.cell.y + data.cell.height / 2 + 1,
+                { align: 'center' }
+              );
+            }
+          }
+        },
+        didDrawPage: function (data) {
+          const pageCount = doc.internal.getNumberOfPages();
+          doc.setFontSize(7.5);
+          doc.setTextColor(100, 116, 139);
+          doc.text(
+            `Evaluación PC Studio Builder • Alumno/a: ${studentName} • Página ${data.pageNumber} de ${pageCount}`,
+            14,
+            204
+          );
+        }
+      });
+
+      const safeFileName = sanitizeFileName(studentName);
+      doc.save(`Evaluacion_PC_${safeFileName}.pdf`);
+      showToast(`PDF descargado: Evaluacion_PC_${safeFileName}.pdf`);
+    }
+
+    // -------------------------------------------------------------------------
+    // 10B. EXPORTACIÓN DE ARCHIVO ENCRIPTADO (.SAV) PARA CORRECCIÓN AUTOMÁTICA
+    // -------------------------------------------------------------------------
+    const SAV_SECRET_KEY = 'PCStudioBuilder::EvalKey#2026!CanariasIGIC';
+
+    function computeFnv1a32(bytes) {
+      let hash = 0x811c9dc5;
+      for (let i = 0; i < bytes.length; i++) {
+        hash ^= bytes[i];
+        hash = Math.imul(hash, 0x01000193);
+      }
+      return hash >>> 0;
+    }
+
+    function rc4Drop512(keyBytes, dataBytes) {
+      const S = new Uint8Array(256);
+      for (let i = 0; i < 256; i++) S[i] = i;
+
+      let j = 0;
+      const keyLen = keyBytes.length;
+      for (let i = 0; i < 256; i++) {
+        j = (j + S[i] + keyBytes[i % keyLen]) & 0xff;
+        const tmp = S[i];
+        S[i] = S[j];
+        S[j] = tmp;
+      }
+
+      // Descartar los primeros 512 bytes del flujo (RC4-drop512)
+      let i = 0;
+      j = 0;
+      for (let k = 0; k < 512; k++) {
+        i = (i + 1) & 0xff;
+        j = (j + S[i]) & 0xff;
+        const tmp = S[i];
+        S[i] = S[j];
+        S[j] = tmp;
+      }
+
+      const out = new Uint8Array(dataBytes.length);
+      for (let k = 0; k < dataBytes.length; k++) {
+        i = (i + 1) & 0xff;
+        j = (j + S[i]) & 0xff;
+        const tmp = S[i];
+        S[i] = S[j];
+        S[j] = tmp;
+        const rnd = S[(S[i] + S[j]) & 0xff];
+        out[k] = dataBytes[k] ^ rnd;
+      }
+      return out;
+    }
+
+    function uint8ToBase64(bytes) {
+      let binary = '';
+      const chunkSize = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const sub = bytes.subarray(i, i + chunkSize);
+        binary += String.fromCharCode.apply(null, sub);
+      }
+      return btoa(binary);
+    }
+
+    function encryptSavPayload(plainJsonStr) {
+      const encoder = new TextEncoder();
+      const payloadBytes = encoder.encode(plainJsonStr);
+      const checksum = computeFnv1a32(payloadBytes);
+
+      // Cabecera interna binaria: 'PCS1' (4 bytes) + checksum FNV-1a 32-bit (4 bytes) + payload UTF-8
+      const innerBuffer = new Uint8Array(8 + payloadBytes.length);
+      innerBuffer[0] = 0x50; // 'P'
+      innerBuffer[1] = 0x43; // 'C'
+      innerBuffer[2] = 0x53; // 'S'
+      innerBuffer[3] = 0x31; // '1'
+      innerBuffer[4] = (checksum >>> 24) & 0xff;
+      innerBuffer[5] = (checksum >>> 16) & 0xff;
+      innerBuffer[6] = (checksum >>> 8) & 0xff;
+      innerBuffer[7] = checksum & 0xff;
+      innerBuffer.set(payloadBytes, 8);
+
+      // Vector de inicialización / sal aleatoria de 16 bytes
+      const iv = new Uint8Array(16);
+      if (window.crypto && window.crypto.getRandomValues) {
+        window.crypto.getRandomValues(iv);
+      } else {
+        for (let k = 0; k < 16; k++) iv[k] = Math.floor(Math.random() * 256);
+      }
+
+      const secretBytes = encoder.encode(SAV_SECRET_KEY);
+      const combinedKey = new Uint8Array(secretBytes.length + iv.length);
+      combinedKey.set(secretBytes, 0);
+      combinedKey.set(iv, secretBytes.length);
+
+      const cipherBytes = rc4Drop512(combinedKey, innerBuffer);
+
+      // Paquete final: IV (16 bytes) + Texto cifrado
+      const packet = new Uint8Array(iv.length + cipherBytes.length);
+      packet.set(iv, 0);
+      packet.set(cipherBytes, iv.length);
+
+      const b64 = uint8ToBase64(packet);
+      const wrapped = b64.match(/.{1,76}/g).join('\n');
+      return `PCSAV1$\n${wrapped}\n`;
+    }
+
+    function exportToSAV() {
+      if (!studentIdentity) {
+        showToast('Debes identificarte antes de generar el archivo .sav');
+        return;
+      }
+
+      const totals = calculateTotals();
+      const { flat, baseSum, igicSum, grandTotal, totalUnits } = totals;
+
+      if (flat.length === 0) {
+        showToast('Añade al menos un componente antes de descargar el archivo .sav');
+        return;
+      }
+
+      // Estructura de datos del equipo montado (excluyendo los datos binarios/base64 de imágenes)
+      const savPayload = {
+        schemaVersion: '1.0',
+        exportedAt: new Date().toISOString(),
+        student: {
+          fullName: studentIdentity.fullName,
+          group: studentIdentity.group,
+          lockedAt: studentIdentity.lockedAt
+        },
+        tax: {
+          name: 'IGIC',
+          rate: 0.07
+        },
+        totals: {
+          baseSum,
+          igicSum,
+          grandTotal,
+          totalUnits
+        },
+        components: flat.map(row => {
+          const lineBase = +(row.item.price * row.qty).toFixed(2);
+          const lineIgic = +(lineBase * 0.07).toFixed(2);
+          const lineTotal = +(lineBase + lineIgic).toFixed(2);
+          const jData = justifications[row.item.id] || { reason: '', note: '' };
+
+          return {
+            categoryKey: row.catKey,
+            categoryLabel: row.catLabel,
+            id: row.item.id,
+            name: row.item.name,
+            unitPriceBase: row.item.price,
+            qty: row.qty,
+            lineBase,
+            lineIgic,
+            lineTotal,
+            reason: (jData.reason || '').trim(),
+            compatibilityNote: (jData.note || '').trim(),
+            hasImageAttached: Boolean(componentImages[row.item.id])
+          };
+        }),
+        buildIds: {
+          cpu: build.cpu ? build.cpu.id : null,
+          motherboard: build.motherboard ? build.motherboard.id : null,
+          ram: build.ram ? build.ram.id : null,
+          gpu: build.gpu ? build.gpu.id : null,
+          cooler: build.cooler ? build.cooler.id : null,
+          storage: (build.storage || []).map(e => ({ id: e.item.id, qty: e.qty })),
+          psu: build.psu ? build.psu.id : null,
+          case: build.case ? build.case.id : null,
+          cooling_extras: (build.cooling_extras || []).map(e => ({ id: e.item.id, qty: e.qty })),
+          monitors: (build.monitors || []).map(e => ({ id: e.item.id, qty: e.qty })),
+          peripherals: (build.peripherals || []).map(e => ({ id: e.item.id, qty: e.qty }))
+        }
+      };
+
+      const encryptedContent = encryptSavPayload(JSON.stringify(savPayload));
+      const blob = new Blob([encryptedContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+
+      const safeFileName = sanitizeFileName(studentIdentity.fullName);
+      const fileName = `Evaluacion_PC_${safeFileName}.sav`;
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      showToast(`Archivo encriptado descargado: ${fileName}`);
+    }
+
+    // -------------------------------------------------------------------------
+    // 11. ACTUALIZACIÓN GLOBAL E INICIALIZACIÓN
+    // -------------------------------------------------------------------------
+    function refreshAllViews() {
+      const totals = calculateTotals();
+      renderTopCardsAndDonut(totals);
+      renderBlueprintSVG(totals);
+      renderCategoryPills();
+      renderCatalogCards();
+      renderBudgetList(totals);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      refreshAllViews();
+      const nameInput = document.getElementById('input-student-name');
+      if (nameInput) nameInput.focus();
+    });
+  </script>
+</body>
+</html>
