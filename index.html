@@ -722,24 +722,24 @@
   <!-- ===================================================================== -->
   <script>
     // -------------------------------------------------------------------------
-    // 1. DEFINICIÓN DE LAS 11 CATEGORÍAS
+    // 1. DEFINICIÓN DE LAS 11 CATEGORÍAS DE HARDWARE Y PERIFÉRICOS
     // -------------------------------------------------------------------------
     const CATEGORIES = [
-      { key: 'cpu', label: 'Procesadores (CPU)', isMulti: false, desc: 'Cerebro del sistema: define el socket compatible, consumo TDP, gráficos integrados (iGPU) y si incluye disipador.' },
-      { key: 'motherboard', label: 'Placas Base', isMulti: false, desc: 'Conecta los componentes: determina el socket, estándar de memoria RAM (DDR4/DDR5), ranuras M.2 y formato.' },
-      { key: 'ram', label: 'Memoria RAM', isMulti: false, desc: 'Memoria principal del sistema. Los kits de 2 módulos activan Dual-Channel para duplicar el ancho de banda.' },
-      { key: 'gpu', label: 'Tarjetas Gráficas (GPU)', isMulti: false, desc: 'Aceleración gráfica 3D y renderizado. Verifica su longitud en mm frente al límite de la caja y consumo TDP.' },
-      { key: 'cooler', label: 'Refrigeración CPU', isMulti: false, desc: 'Disipación térmica por aire o líquida AIO. Su capacidad en W debe cubrir el TDP del procesador elegido.' },
-      { key: 'storage', label: 'Almacenamiento NVMe/SSD', isMulti: true, desc: 'Unidades de estado sólido de alta velocidad PCIe Gen4/Gen5 o SATA. Puedes añadir múltiples unidades.' },
-      { key: 'psu', label: 'Fuentes de Alimentación (PSU)', isMulti: false, desc: 'Suministra energía limpia y estable. Se recomienda trabajar por debajo del 80% de carga máxima.' },
-      { key: 'case', label: 'Cajas / Chasis', isMulti: false, desc: 'Aloja todos los componentes. Define los formatos de placa admitidos, largo máximo de GPU y altura de disipador.' },
-      { key: 'cooling_extras', label: 'Ventilación y Extras Térmicos', isMulti: true, desc: 'Pastas térmicas de alto rendimiento y packs de ventiladores de 120mm que reducen la temperatura de la CPU.' },
-      { key: 'monitors', label: 'Monitores', isMulti: true, desc: 'Pantallas gaming de alta frecuencia, paneles OLED o monitores 4K calibrados para diseño profesional.' },
-      { key: 'peripherals', label: 'Periféricos', isMulti: true, desc: 'Teclados mecánicos, ratones ultraligeros, auriculares inalámbricos, alfombrillas XXL y webcams 4K.' }
+      { key: 'cpu', label: 'Procesadores (CPU)', isMulti: false, desc: 'Unidad central de procesamiento' },
+      { key: 'motherboard', label: 'Placas Base', isMulti: false, desc: 'Plataforma y conectividad principal' },
+      { key: 'ram', label: 'Memoria RAM', isMulti: false, desc: 'Módulos de memoria principal' },
+      { key: 'gpu', label: 'Tarjetas Gráficas (GPU)', isMulti: false, desc: 'Aceleración gráfica y cálculo paralelo' },
+      { key: 'cooler', label: 'Refrigeración CPU', isMulti: false, desc: 'Disipadores por aire o líquida AIO' },
+      { key: 'storage', label: 'Almacenamiento NVMe/SSD', isMulti: true, desc: 'Unidades de estado sólido M.2 o SATA' },
+      { key: 'psu', label: 'Fuentes de Alimentación (PSU)', isMulti: false, desc: 'Suministro eléctrico del equipo' },
+      { key: 'case', label: 'Cajas / Chasis', isMulti: false, desc: 'Estructura física y ventilación' },
+      { key: 'cooling_extras', label: 'Ventilación y Extras Térmicos', isMulti: true, desc: 'Pasta térmica y ventiladores adicionales' },
+      { key: 'monitors', label: 'Monitores', isMulti: true, desc: 'Pantallas para el puesto de trabajo' },
+      { key: 'peripherals', label: 'Periféricos', isMulti: true, desc: 'Teclados, ratones, auriculares y accesorios' }
     ];
 
     // -------------------------------------------------------------------------
-    // 2. CATÁLOGO EXTENSO Y REALISTA (80 ARTÍCULOS EN 11 CATEGORÍAS)
+    // 2. CATÁLOGO EXTENSO Y REALISTA (92 ARTÍCULOS EN 11 CATEGORÍAS)
     // -------------------------------------------------------------------------
     const CATALOG = {
       // 1. Procesadores (CPU) - 12 modelos
@@ -846,22 +846,34 @@
 
       // 10. Monitores - 6 modelos
       monitors: [
-        { id: 'mon-lg-qhd', name: 'LG UltraGear 27" QHD 180Hz IPS', price: 279.00, hz: 180, res: '2560x1440', specs: '27" IPS • QHD 2560x1440 • 180Hz • 1ms GtG • HDR10' },
-        { id: 'mon-rog-oled', name: 'ASUS ROG Swift 27" OLED 240Hz', price: 849.00, hz: 240, res: '2560x1440', specs: '27" OLED • QHD 2560x1440 • 240Hz • 0.03ms • Contraste Infinito' },
-        { id: 'mon-m28u-4k', name: 'Gigabyte M28U 28" 4K 144Hz IPS', price: 469.00, hz: 144, res: '3840x2160', specs: '28" SuperSpeed IPS • 4K UHD 3840x2160 • 144Hz • HDMI 2.1 + KVM' },
-        { id: 'mon-aoc-24g4', name: 'AOC 24G4 24" FullHD 180Hz IPS', price: 139.00, hz: 180, res: '1920x1080', specs: '24" Fast IPS • FullHD 1920x1080 • 180Hz • 0.5ms MPRT' },
-        { id: 'mon-dell-4k', name: 'Dell UltraSharp 27" 4K USB-C Profesional', price: 495.00, hz: 60, res: '3840x2160', specs: '27" IPS Black • 4K UHD • 98% DCI-P3 Calibrado • Hub USB-C 90W' },
-        { id: 'mon-g5-uw', name: 'Samsung Odyssey G5 34" Ultrawide WQHD', price: 329.00, hz: 165, res: '3440x1440', specs: '34" Curvo 1000R • Ultrawide 3440x1440 • 165Hz • 1ms' }
+        { id: 'mon-lg-qhd', name: 'LG UltraGear 27" QHD 180Hz IPS', price: 279.00, hz: 180, res: '2560x1440', specs: '27" Panel IPS • Resolución QHD 2560x1440 • 180Hz • 1ms GtG' },
+        { id: 'mon-rog-oled', name: 'ASUS ROG Swift 27" OLED 240Hz', price: 849.00, hz: 240, res: '2560x1440', specs: '27" Panel OLED • Resolución QHD 2560x1440 • 240Hz • 0.03ms' },
+        { id: 'mon-m28u-4k', name: 'Gigabyte M28U 28" 4K 144Hz IPS', price: 469.00, hz: 144, res: '3840x2160', specs: '28" Panel SS IPS • Resolución 4K UHD 3840x2160 • 144Hz • HDMI 2.1' },
+        { id: 'mon-aoc-24g4', name: 'AOC 24G4 24" FullHD 180Hz IPS', price: 139.00, hz: 180, res: '1920x1080', specs: '24" Panel Fast IPS • Resolución FullHD 1920x1080 • 180Hz • 1ms' },
+        { id: 'mon-dell-4k', name: 'Dell UltraSharp 27" 4K USB-C Profesional', price: 495.00, hz: 60, res: '3840x2160', specs: '27" IPS Black • Resolución 4K 3840x2160 • 99% DCI-P3 • Hub USB-C 90W' },
+        { id: 'mon-g5-uw', name: 'Samsung Odyssey G5 34" Ultrawide WQHD', price: 329.00, hz: 165, res: '3440x1440', specs: '34" Curvo 1000R • Ultrawide 3440x1440 • 165Hz • Formato 21:9' }
       ],
 
-      // 11. Periféricos - 8 modelos
+      // 11. Periféricos - 20 modelos (gama alta, media y entrada/económica)
       peripherals: [
         { id: 'per-keychron-q1', name: 'Teclado Mecánico Keychron Q1 Pro Wireless', price: 189.00, kind: 'keyboard', specs: 'Formato 75% • Chasis Aluminio CNC • Inalámbrico Bluetooth / USB-C' },
         { id: 'per-gprox-tkl', name: 'Teclado Logitech G Pro X TKL', price: 165.00, kind: 'keyboard', specs: 'Formato Tenkeyless • Inalámbrico LIGHTSPEED • Switches táctiles' },
+        { id: 'per-g213', name: 'Teclado Gaming Logitech G213 Prodigy', price: 49.90, kind: 'keyboard', specs: 'Membrana Mech-Dome • Retroiluminación RGB LIGHTSYNC • Reposamuñecas integrado • USB' },
+        { id: 'per-k552', name: 'Teclado Mecánico Redragon K552 Kumara', price: 42.00, kind: 'keyboard', specs: 'Mecánico TKL 87 teclas • Switches Outemu Red • Retroiluminación LED • Cable USB' },
+        { id: 'per-mk270', name: 'Combo Teclado y Ratón Inalámbrico Logitech MK270', price: 28.90, kind: 'keyboard', specs: 'Inalámbrico 2.4GHz Receptor Nano • Teclado completo + Ratón óptico • Teclas multimedia' },
+        { id: 'per-k120', name: 'Teclado Oficina Logitech K120 USB', price: 14.50, kind: 'keyboard', specs: 'Membrana • Formato Completo con Pad Numérico • Resistente a salpicaduras • Cable USB' },
         { id: 'per-gprox-sl2', name: 'Ratón Logitech G Pro X Superlight 2', price: 139.00, kind: 'mouse', specs: 'Ultraligero 60g • Sensor HERO 2 32.000 DPI • Inalámbrico LIGHTSPEED' },
         { id: 'per-dav3-pro', name: 'Ratón Razer DeathAdder V3 Pro', price: 135.00, kind: 'mouse', specs: 'Ergonómico 63g • Sensor Óptico Focus Pro 30K DPI • Inalámbrico' },
-        { id: 'per-cloud3', name: 'Auriculares HyperX Cloud III Wireless', price: 135.00, kind: 'headset', specs: 'Inalámbricos 2.4GHz • Drivers 53mm • Autonomía 120 horas' },
+        { id: 'per-cobra', name: 'Ratón Gaming Razer Cobra Cableado', price: 39.90, kind: 'mouse', specs: 'Ultraligero 58g • Sensor Óptico 8.500 DPI • Switches ópticos • Cable Speedflex' },
+        { id: 'per-g203', name: 'Ratón Gaming Logitech G203 Lightsync', price: 27.90, kind: 'mouse', specs: 'Sensor 8.000 DPI • 6 botones programables • Peso 85g • Cable USB • RGB' },
+        { id: 'per-m185', name: 'Ratón Inalámbrico Logitech M185', price: 15.90, kind: 'mouse', specs: 'Inalámbrico 2.4GHz • Sensor Óptico 1.000 DPI • Diseño compacto • Autonomía 12 meses' },
+        { id: 'per-b100', name: 'Ratón Óptico Oficina Logitech B100 USB', price: 9.90, kind: 'mouse', specs: 'Sensor Óptico 800 DPI • Diseño ambidiestro • 3 botones • Cable USB Plug & Play' },
         { id: 'per-nova7', name: 'Auriculares SteelSeries Arctis Nova 7', price: 149.00, kind: 'headset', specs: 'Inalámbricos Duales 2.4GHz + Bluetooth • Audio Espacial 360°' },
+        { id: 'per-cloud3', name: 'Auriculares HyperX Cloud III Wireless', price: 135.00, kind: 'headset', specs: 'Inalámbricos 2.4GHz • Drivers 53mm • Autonomía 120 horas' },
+        { id: 'per-g435', name: 'Auriculares Inalámbricos Logitech G435 Lightspeed', price: 59.90, kind: 'headset', specs: 'Ultraligeros 165g • Inalámbrico LIGHTSPEED + Bluetooth • Doble micrófono integrado' },
+        { id: 'per-cloud-stinger2', name: 'Auriculares Gaming HyperX Cloud Stinger 2 Core', price: 39.90, kind: 'headset', specs: 'Drivers direccionales 40mm • Micrófono abatible • Peso 275g • Conector Jack 3.5mm' },
+        { id: 'per-h390', name: 'Auriculares Oficina Logitech H390 USB', price: 34.90, kind: 'headset', specs: 'Conexión USB-A Digital • Micrófono con cancelación de ruido • Controles en cable' },
+        { id: 'per-h111', name: 'Auriculares Estéreo Logitech H111 Jack 3.5mm', price: 14.90, kind: 'headset', specs: 'Diseño ligero • Micrófono giratorio con supresión de ruido • Conector Jack 3.5mm' },
         { id: 'per-pad-xxl', name: 'Alfombrilla XXL Control Pro', price: 29.00, kind: 'pad', specs: '900x400x4mm • Superficie microtejida de precisión • Base antideslizante' },
         { id: 'per-brio-4k', name: 'Webcam Logitech Brio 4K', price: 169.00, kind: 'webcam', specs: 'Resolución 4K Ultra HD • HDR • Doble micrófono omnidireccional' }
       ]
