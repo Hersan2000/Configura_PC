@@ -155,6 +155,15 @@
           <span>Comenzar Evaluación</span>
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
         </button>
+
+        <div class="pt-3 border-t border-slate-200/90 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+          <span class="text-slate-500">¿Ya tenías un proyecto guardado?</span>
+          <label class="cursor-pointer px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 hover:border-indigo-200 font-bold transition flex items-center gap-1.5" title="Cargar un archivo de trabajo guardado (.pcc)">
+            <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            <span>Cargar</span>
+            <input type="file" accept=".pcc" class="hidden" onchange="handlePccFileSelected(event, true)">
+          </label>
+        </div>
       </form>
     </div>
   </div>
@@ -197,9 +206,29 @@
           </div>
         </div>
 
+        <!-- Indicador de Guardado Automático en Navegador -->
+        <div id="autosave-status-pill" class="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50/80 border border-emerald-200/90 text-[11px] font-semibold text-emerald-800 select-none" title="El progreso se guarda automáticamente en este navegador">
+          <span id="autosave-dot" class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span id="autosave-text">Autoguardado listo</span>
+        </div>
+
         <div class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-right hidden md:block">
           <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block leading-none">Total con IGIC (7%)</span>
           <span id="hdr-quick-total" class="text-sm font-extrabold font-mono text-indigo-600">0,00 €</span>
+        </div>
+
+        <!-- Guardar y Cargar Proyecto Encriptado (.PCC) -->
+        <div class="flex items-center gap-1.5">
+          <button onclick="exportToPCC()" class="px-3 py-2 text-xs font-bold rounded-xl bg-slate-800 hover:bg-slate-900 text-white shadow-2xs transition flex items-center gap-1.5" title="Guardar avance completo encriptado (.pcc) con imágenes y justificaciones">
+            <svg class="w-4 h-4 text-sky-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2h2m3-4H9a2 2 0 00-2 2v7a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-1m-1 4l-3 3m0 0l-3-3m3 3V3"/></svg>
+            <span>Guardar</span>
+          </button>
+
+          <label class="cursor-pointer px-3 py-2 text-xs font-semibold rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs transition flex items-center gap-1.5" title="Cargar un archivo de trabajo previo (.pcc)">
+            <svg class="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            <span>Cargar</span>
+            <input type="file" accept=".pcc" class="hidden" onchange="handlePccFileSelected(event, false)">
+          </label>
         </div>
 
         <button onclick="openReportPreviewModal()" class="px-3 py-2 text-xs font-semibold rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs transition flex items-center gap-1.5">
@@ -220,6 +249,11 @@
 
         <button onclick="requestResetBuild()" class="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl border border-slate-200 transition" title="Vaciar componentes seleccionados (mantiene tu nombre)">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+
+        <button onclick="requestLogoutSession()" class="px-3 py-2 text-xs font-semibold rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition flex items-center gap-1.5" title="Cerrar sesión y volver a la pantalla inicial de introducción de nombre">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          <span>Cerrar</span>
         </button>
       </div>
 
@@ -510,17 +544,17 @@
       </section>
 
       <!-- COLUMNA DERECHA: PRESUPUESTO IGIC (7%) Y JUSTIFICACIONES DEL ALUMNO -->
-      <section class="lg:col-span-5 bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col gap-4">
+      <section class="lg:col-span-5 bg-[#fdf8ee] border border-amber-200/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex flex-col gap-4">
         
-        <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
+        <div class="flex items-start justify-between gap-2 border-b border-amber-200/70 pb-3">
           <div>
             <h2 class="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-              <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+              <svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 14l6-6m-5.5.5h.01m4.995 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
               Presupuesto y Justificación del Alumno/a
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Adjunta imagen local, redacta el motivo de elección y la justificación técnica</p>
+            <p class="text-xs text-slate-600 mt-0.5">Adjunta imagen local, redacta el motivo de elección y la justificación técnica</p>
           </div>
-          <span id="budget-count-badge" class="text-xs font-bold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg flex-shrink-0">0 artículos</span>
+          <span id="budget-count-badge" class="text-xs font-bold bg-white text-amber-800 border border-amber-200/80 px-2.5 py-1 rounded-lg flex-shrink-0">0 artículos</span>
         </div>
 
         <!-- Lista de Componentes Seleccionados -->
@@ -529,7 +563,7 @@
         </div>
 
         <!-- Resumen Fiscal Exclusivo IGIC (7%) -->
-        <div class="bg-slate-50 border border-slate-200/90 rounded-xl p-4 space-y-2">
+        <div class="bg-white/95 border border-amber-200/80 rounded-xl p-4 space-y-2 shadow-2xs">
           <div class="flex justify-between items-center text-xs text-slate-600">
             <span>Base Imponible (Sin impuestos)</span>
             <span id="summary-base" class="font-mono font-semibold text-slate-800">0,00 €</span>
@@ -652,6 +686,27 @@
       <div class="flex items-center justify-end gap-2 pt-2">
         <button onclick="closeResetModal()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition">Cancelar</button>
         <button onclick="confirmResetBuild()" class="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs transition shadow-2xs">Sí, vaciar componentes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL DE CONFIRMACIÓN PARA CERRAR Y VOLVER A IDENTIFICACIÓN           -->
+  <!-- ===================================================================== -->
+  <div id="logout-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/45 backdrop-blur-xs p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-xl max-w-md w-full p-5 space-y-4">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-slate-900">¿Cerrar sesión y volver al inicio?</h3>
+          <p class="text-xs text-slate-600 mt-1 leading-relaxed">Regresarás a la pantalla inicial de introducción de nombre de alumno/a y se limpiará la sesión actual. Asegúrate de haber guardado o descargado tu trabajo antes de cerrar.</p>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button onclick="closeLogoutModal()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition">Cancelar</button>
+        <button onclick="confirmLogoutSession()" class="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs transition shadow-2xs">Sí, cerrar y volver al inicio</button>
       </div>
     </div>
   </div>
@@ -876,6 +931,7 @@
       }
 
       refreshAllViews();
+      scheduleAutoSave();
       showToast(`Sesión iniciada para ${rawName}`);
     }
 
@@ -1476,6 +1532,7 @@
       }
 
       refreshAllViews();
+      scheduleAutoSave();
       showToast(`Añadido: ${item.name}`);
     }
 
@@ -1490,6 +1547,7 @@
       }
 
       refreshAllViews();
+      scheduleAutoSave();
       showToast('Componente eliminado del presupuesto');
     }
 
@@ -1504,16 +1562,19 @@
       }
 
       refreshAllViews();
+      scheduleAutoSave();
     }
 
     function updateReason(itemId, val) {
       if (!justifications[itemId]) justifications[itemId] = { reason: '', note: '' };
       justifications[itemId].reason = val;
+      scheduleAutoSave();
     }
 
     function updateNote(itemId, val) {
       if (!justifications[itemId]) justifications[itemId] = { reason: '', note: '' };
       justifications[itemId].note = val;
+      scheduleAutoSave();
     }
 
     // Procesa y optimiza una imagen local a JPEG compatible con jsPDF conservando relación de aspecto
@@ -1561,6 +1622,7 @@
             };
 
             refreshAllViews();
+            scheduleAutoSave();
             showToast(`Imagen cargada: ${file.name}`);
           } catch (err) {
             showToast('No se pudo procesar la imagen seleccionada');
@@ -1581,6 +1643,7 @@
       if (componentImages[itemId]) {
         delete componentImages[itemId];
         refreshAllViews();
+        scheduleAutoSave();
         showToast('Imagen del componente eliminada');
       }
     }
@@ -1619,7 +1682,74 @@
       componentImages = {};
       closeResetModal();
       refreshAllViews();
+      scheduleAutoSave();
       showToast('Componentes vaciados (identidad del alumno conservada)');
+    }
+
+    function requestLogoutSession() {
+      const modal = document.getElementById('logout-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeLogoutModal() {
+      const modal = document.getElementById('logout-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    async function confirmLogoutSession() {
+      studentIdentity = null;
+      build = {
+        cpu: null,
+        motherboard: null,
+        ram: null,
+        gpu: null,
+        cooler: null,
+        storage: [],
+        psu: null,
+        case: null,
+        cooling_extras: [],
+        monitors: [],
+        peripherals: []
+      };
+      justifications = {};
+      componentImages = {};
+      activeCategory = 'cpu';
+      searchQuery = '';
+      sortOrder = 'default';
+
+      const searchInput = document.getElementById('catalog-search');
+      if (searchInput) searchInput.value = '';
+      const sortSelect = document.getElementById('select-sort-order');
+      if (sortSelect) sortSelect.value = 'default';
+
+      const hdrNameEl = document.getElementById('hdr-student-name');
+      if (hdrNameEl) hdrNameEl.textContent = 'Pendiente de identificar';
+
+      const nameInput = document.getElementById('input-student-name');
+      const groupInput = document.getElementById('input-student-group');
+      const errorBox = document.getElementById('login-error-msg');
+      if (nameInput) nameInput.value = '';
+      if (groupInput) groupInput.value = '';
+      if (errorBox) errorBox.classList.add('hidden');
+
+      await clearAutoSaveFromBrowser();
+      closeLogoutModal();
+      refreshAllViews();
+
+      const loginModal = document.getElementById('student-login-modal');
+      if (loginModal) {
+        loginModal.classList.remove('hidden');
+      }
+      if (nameInput) {
+        setTimeout(() => nameInput.focus(), 50);
+      }
+      showToast('Sesión cerrada. Introduce los datos del alumno/a.');
     }
 
     function renderBudgetList(totals) {
@@ -1636,7 +1766,7 @@
 
       if (flat.length === 0) {
         listEl.innerHTML = `
-          <div class="py-10 px-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 space-y-1.5">
+          <div class="py-10 px-4 text-center bg-white/90 rounded-xl border border-dashed border-amber-300/80 space-y-1.5">
             <p class="text-xs font-bold text-slate-700">Todavía no has añadido ningún componente</p>
             <p class="text-[11px] text-slate-500">Selecciona piezas desde el catálogo de la izquierda para construir tu equipo.</p>
           </div>
@@ -1652,91 +1782,100 @@
         const imgData = componentImages[row.item.id] || null;
 
         return `
-          <div class="bg-slate-50/80 border border-slate-200/90 rounded-xl p-3 space-y-2.5">
+          <div class="bg-white/95 border border-amber-200/80 rounded-xl p-3 space-y-2.5 shadow-2xs">
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-600 block">${escapeHtml(row.catLabel)}</span>
-                <h4 class="text-xs font-extrabold text-slate-900 truncate" title="${escapeHtml(row.item.name)}">${escapeHtml(row.item.name)}</h4>
-                <div class="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500">
-                  <span>Base: <strong class="font-mono text-slate-700">${formatEuro(lineBase)}</strong></span>
-                  <span>•</span>
-                  <span>c/IGIC: <strong class="font-mono text-indigo-700">${formatEuro(lineTotal)}</strong></span>
-                  <span>(${sharePct}%)</span>
-                </div>
+                <h4 class="text-xs font-extrabold text-slate-900 leading-snug">${escapeHtml(row.item.name)}</h4>
+                <p class="text-[10px] text-slate-500 mt-0.5 line-clamp-1">${escapeHtml(row.item.specs)}</p>
               </div>
+              <button
+                onclick="removeItemFromBudget('${row.catKey}', '${row.item.id}')"
+                class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition flex-shrink-0"
+                title="Eliminar componente"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
 
-              <div class="flex items-center gap-1 flex-shrink-0">
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100 text-[11px]">
+              <div class="flex items-center gap-2">
                 ${row.isMulti ? `
-                  <button onclick="changeMultiQty('${row.catKey}', '${row.item.id}', -1)" class="w-6 h-6 rounded-md bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center">-</button>
-                  <span class="px-1.5 font-mono font-bold text-xs text-slate-800">${row.qty}</span>
-                  <button onclick="changeMultiQty('${row.catKey}', '${row.item.id}', 1)" class="w-6 h-6 rounded-md bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center">+</button>
-                ` : ''}
-                <button onclick="removeItemFromBudget('${row.catKey}', '${row.item.id}')" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="Eliminar componente">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                </button>
+                  <div class="inline-flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
+                    <button onclick="changeMultiQty('${row.catKey}', '${row.item.id}', -1)" class="w-6 h-6 rounded-md bg-white hover:bg-slate-50 text-slate-700 font-bold shadow-2xs">-</button>
+                    <span class="px-1.5 font-mono font-bold text-slate-800">${row.qty}</span>
+                    <button onclick="changeMultiQty('${row.catKey}', '${row.item.id}', 1)" class="w-6 h-6 rounded-md bg-white hover:bg-slate-50 text-slate-700 font-bold shadow-2xs">+</button>
+                  </div>
+                ` : `
+                  <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-semibold">1 ud.</span>
+                `}
+                <span class="text-slate-500">Base: <strong class="font-mono text-slate-700">${formatEuro(lineBase)}</strong></span>
+              </div>
+              <div class="text-right">
+                <span class="text-slate-500">c/IGIC: </span>
+                <strong class="font-mono font-extrabold text-indigo-700">${formatEuro(lineTotal)}</strong>
               </div>
             </div>
 
-            <!-- Barra visual de peso en el presupuesto -->
-            <div class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-              <div class="h-full bg-indigo-500 rounded-full" style="width: ${Math.max(sharePct, 2)}%"></div>
+            <!-- Barra de peso porcentual en el presupuesto -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-[10px] text-slate-400">
+                <span>Peso en el presupuesto</span>
+                <span class="font-mono font-semibold text-slate-600">${sharePct}%</span>
+              </div>
+              <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full bg-indigo-500 rounded-full transition-all" style="width: ${sharePct}%"></div>
+              </div>
             </div>
 
-            <!-- Carga de imagen ilustrativa local para el componente -->
-            <div class="bg-white border border-slate-200/90 rounded-lg p-2">
-              <div class="flex items-center justify-between mb-1.5">
-                <span class="text-[10px] font-bold text-slate-700 flex items-center gap-1">
-                  <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                  Imagen ilustrativa (aparece en el PDF)
-                </span>
-                ${imgData ? `
-                  <div class="flex items-center gap-1.5">
-                    <label class="cursor-pointer px-2 py-0.5 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-[10px] transition">
+            <!-- Carga de Imagen Local del Componente -->
+            <div class="bg-slate-50/90 border border-slate-200/80 rounded-lg p-2">
+              ${imgData ? `
+                <div class="flex items-center justify-between gap-2.5">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <img src="${imgData.dataUrl}" alt="${escapeHtml(row.item.name)}" class="w-12 h-12 object-contain bg-white border border-slate-200 rounded-lg p-0.5 flex-shrink-0">
+                    <div class="min-w-0">
+                      <span class="text-[10px] font-bold text-emerald-700 block">Imagen adjunta para PDF</span>
+                      <span class="text-[10px] text-slate-500 truncate block">${escapeHtml(imgData.fileName || 'componente.jpg')}</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1 flex-shrink-0">
+                    <label class="cursor-pointer px-2 py-1 rounded-md bg-white hover:bg-indigo-50 text-indigo-700 border border-slate-200 text-[10px] font-bold transition">
                       Cambiar
                       <input type="file" accept="image/*" class="hidden" onchange="handleComponentImageUpload('${row.item.id}', event)">
                     </label>
-                    <button type="button" onclick="removeComponentImage('${row.item.id}')" class="px-2 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold text-[10px] transition">
+                    <button type="button" onclick="removeComponentImage('${row.item.id}')" class="px-2 py-1 rounded-md bg-white hover:bg-rose-50 text-rose-600 border border-slate-200 text-[10px] font-bold transition">
                       Quitar
                     </button>
                   </div>
-                ` : ''}
-              </div>
-
-              ${imgData ? `
-                <div class="flex items-center gap-2.5 bg-slate-50 border border-slate-200/80 rounded-lg p-1.5">
-                  <img src="${imgData.dataUrl}" alt="${escapeHtml(row.item.name)}" class="w-16 h-14 object-contain bg-white rounded border border-slate-200 flex-shrink-0">
-                  <div class="min-w-0 flex-1">
-                    <p class="text-[11px] font-semibold text-slate-800 truncate" title="${escapeHtml(imgData.fileName)}">${escapeHtml(imgData.fileName)}</p>
-                    <p class="text-[10px] text-emerald-700 font-medium mt-0.5">Lista para incluir en el informe PDF</p>
-                  </div>
                 </div>
               ` : `
-                <label class="cursor-pointer flex items-center justify-center gap-2 py-2 px-3 rounded-lg border border-dashed border-slate-300 hover:border-indigo-400 bg-slate-50/70 hover:bg-indigo-50/40 text-slate-600 hover:text-indigo-700 transition">
-                  <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                  <span class="text-[11px] font-semibold">Subir imagen local del componente</span>
+                <label class="cursor-pointer flex items-center justify-center gap-1.5 py-1 text-[11px] font-semibold text-indigo-700 hover:text-indigo-800 transition">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <span>Subir imagen local del componente</span>
                   <input type="file" accept="image/*" class="hidden" onchange="handleComponentImageUpload('${row.item.id}', event)">
                 </label>
               `}
             </div>
 
-            <!-- Campos editables vacíos para que el alumno redacte su defensa técnica -->
-            <div class="grid grid-cols-1 gap-2 pt-1">
+            <!-- Campos de Justificación del Alumno/a -->
+            <div class="grid grid-cols-1 gap-2 pt-0.5">
               <div>
-                <label class="text-[10px] font-bold text-slate-700 block mb-0.5">Motivo de elección (Alumno/a)</label>
+                <label class="text-[10px] font-bold uppercase tracking-wider text-indigo-800 block mb-0.5">Motivo de elección</label>
                 <textarea
                   rows="2"
                   oninput="updateReason('${row.item.id}', this.value)"
-                  placeholder="Explica por qué has elegido este modelo para el uso previsto del equipo..."
-                  class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 resize-y"
+                  placeholder="Explica por qué has elegido este modelo para el equipo..."
+                  class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 transition"
                 >${escapeHtml(jData.reason)}</textarea>
               </div>
               <div>
-                <label class="text-[10px] font-bold text-sky-800 block mb-0.5">Justificación técnica de compatibilidad (Alumno/a)</label>
+                <label class="text-[10px] font-bold uppercase tracking-wider text-sky-800 block mb-0.5">Justificación de compatibilidad</label>
                 <textarea
                   rows="2"
                   oninput="updateNote('${row.item.id}', this.value)"
-                  placeholder="Justifica técnicamente su compatibilidad (socket, DDR4/DDR5, mm, TDP, potencia W)..."
-                  class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500 resize-y"
+                  placeholder="Justifica técnicamente su compatibilidad (socket, DDR, mm, TDP, W...)"
+                  class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-sky-500 transition"
                 >${escapeHtml(jData.note)}</textarea>
               </div>
             </div>
@@ -1746,45 +1885,46 @@
     }
 
     // -------------------------------------------------------------------------
-    // 10. VISTA PREVIA DEL INFORME Y DESCARGA DE PDF OFICIAL DE EVALUACIÓN
+    // 10. VISTA PREVIA DEL INFORME Y EXPORTACIÓN OFICIAL A PDF
     // -------------------------------------------------------------------------
     function openReportPreviewModal() {
+      if (!studentIdentity) {
+        showToast('Debes identificarte antes de abrir la vista previa');
+        return;
+      }
+
       const totals = calculateTotals();
       const { flat, baseSum, igicSum, grandTotal, totalUnits } = totals;
-
-      const studentName = studentIdentity ? studentIdentity.fullName : 'Alumno/a sin identificar';
-      const studentGroup = studentIdentity ? studentIdentity.group : 'Sin especificar';
       const nowStr = new Date().toLocaleString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
       });
 
-      document.getElementById('modal-student-header').innerHTML = `
-        <div class="flex flex-wrap items-center gap-4">
-          <div>
-            <span class="text-[10px] font-bold uppercase text-slate-500 block">Alumno/a Evaluado (Identidad Sellada)</span>
-            <span class="font-extrabold text-slate-900 text-sm">${escapeHtml(studentName)}</span>
+      const headerEl = document.getElementById('modal-student-header');
+      if (headerEl) {
+        headerEl.innerHTML = `
+          <div class="flex flex-wrap items-center gap-x-5 gap-y-1">
+            <span><strong>Alumno/a:</strong> ${escapeHtml(studentIdentity.fullName)}</span>
+            <span><strong>Curso / Grupo:</strong> ${escapeHtml(studentIdentity.group)}</span>
+            <span><strong>Fecha:</strong> ${escapeHtml(nowStr)}</span>
           </div>
-          <div class="h-6 w-px bg-slate-300 hidden sm:block"></div>
-          <div>
-            <span class="text-[10px] font-bold uppercase text-slate-500 block">Curso / Grupo</span>
-            <span class="font-bold text-slate-800">${escapeHtml(studentGroup)}</span>
+          <div class="flex flex-wrap items-center gap-3 font-mono font-bold text-indigo-800">
+            <span>Piezas: ${totalUnits}</span>
+            <span>Base: ${formatEuro(baseSum)}</span>
+            <span>IGIC (7%): ${formatEuro(igicSum)}</span>
+            <span class="bg-indigo-600 text-white px-2.5 py-0.5 rounded-lg">Total: ${formatEuro(grandTotal)}</span>
           </div>
-        </div>
-        <div class="text-right">
-          <span class="text-[10px] font-bold uppercase text-slate-500 block">Fecha y Hora del Informe</span>
-          <span class="font-mono font-semibold text-slate-700">${escapeHtml(nowStr)}</span>
-        </div>
-      `;
+        `;
+      }
 
       const tbody = document.getElementById('modal-table-tbody');
+      const tfoot = document.getElementById('modal-table-tfoot');
+
       if (flat.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="9" class="py-8 px-4 text-center text-slate-500 italic">No hay componentes añadidos todavía al presupuesto.</td>
+            <td colspan="9" class="py-8 px-4 text-center text-slate-500">
+              No hay componentes seleccionados en el presupuesto todavía.
+            </td>
           </tr>
         `;
       } else {
@@ -1796,43 +1936,49 @@
           const imgData = componentImages[row.item.id] || null;
 
           return `
-            <tr class="hover:bg-slate-50/70 align-top">
-              <td class="py-2.5 px-3 border-r border-slate-200 font-bold text-slate-800">${escapeHtml(row.catLabel)}</td>
-              <td class="py-2 px-2 border-r border-slate-200 text-center align-middle">
+            <tr class="align-top hover:bg-slate-50/70">
+              <td class="py-2.5 px-3 border-r border-slate-200 font-bold text-slate-700">${escapeHtml(row.catLabel)}</td>
+              <td class="py-2.5 px-3 border-r border-slate-200 text-center">
                 ${imgData
-                  ? `<img src="${imgData.dataUrl}" alt="${escapeHtml(row.item.name)}" class="w-20 h-16 object-contain mx-auto rounded border border-slate-200 bg-white p-0.5">`
+                  ? `<img src="${imgData.dataUrl}" alt="${escapeHtml(row.item.name)}" class="w-16 h-16 object-contain mx-auto bg-white border border-slate-200 rounded-lg p-0.5">`
                   : `<span class="text-[10px] text-slate-400 italic">Sin imagen</span>`
                 }
               </td>
               <td class="py-2.5 px-3 border-r border-slate-200">
-                <div class="font-bold text-slate-900">${escapeHtml(row.item.name)}</div>
-                <div class="text-[11px] text-slate-500 mt-0.5">${escapeHtml(row.item.specs)}</div>
+                <div class="font-extrabold text-slate-900">${escapeHtml(row.item.name)}</div>
+                <div class="text-[10px] text-slate-500 mt-0.5">${escapeHtml(row.item.specs)}</div>
               </td>
               <td class="py-2.5 px-3 border-r border-slate-200 text-center font-mono font-bold">${row.qty}</td>
               <td class="py-2.5 px-3 border-r border-slate-200 text-right font-mono">${formatEuro(lineBase)}</td>
               <td class="py-2.5 px-3 border-r border-slate-200 text-right font-mono text-indigo-700">${formatEuro(lineIgic)}</td>
-              <td class="py-2.5 px-3 border-r border-slate-200 text-right font-mono font-bold text-slate-900">${formatEuro(lineTotal)}</td>
-              <td class="py-2.5 px-3 border-r border-slate-200 bg-indigo-50/20 text-slate-700 whitespace-pre-wrap">${jData.reason ? escapeHtml(jData.reason) : '<span class="text-slate-400 italic">Sin cumplimentar</span>'}</td>
-              <td class="py-2.5 px-3 bg-sky-50/20 text-slate-700 whitespace-pre-wrap">${jData.note ? escapeHtml(jData.note) : '<span class="text-slate-400 italic">Sin cumplimentar</span>'}</td>
+              <td class="py-2.5 px-3 border-r border-slate-200 text-right font-mono font-extrabold text-slate-900">${formatEuro(lineTotal)}</td>
+              <td class="py-2.5 px-3 border-r border-slate-200 bg-indigo-50/20 whitespace-pre-wrap">
+                ${jData.reason ? escapeHtml(jData.reason) : '<span class="text-slate-400 italic">Sin cumplimentar</span>'}
+              </td>
+              <td class="py-2.5 px-3 bg-sky-50/20 whitespace-pre-wrap">
+                ${jData.note ? escapeHtml(jData.note) : '<span class="text-slate-400 italic">Sin cumplimentar</span>'}
+              </td>
             </tr>
           `;
         }).join('');
       }
 
-      document.getElementById('modal-table-tfoot').innerHTML = `
+      tfoot.innerHTML = `
         <tr>
-          <td colspan="3" class="py-3 px-3 border-r border-slate-200 text-right uppercase tracking-wider">Totales Presupuesto (IGIC 7% Incluido)</td>
-          <td class="py-3 px-3 border-r border-slate-200 text-center font-mono">${totalUnits}</td>
-          <td class="py-3 px-3 border-r border-slate-200 text-right font-mono">${formatEuro(baseSum)}</td>
-          <td class="py-3 px-3 border-r border-slate-200 text-right font-mono text-indigo-700">${formatEuro(igicSum)}</td>
-          <td class="py-3 px-3 border-r border-slate-200 text-right font-mono text-sm text-indigo-700">${formatEuro(grandTotal)}</td>
-          <td colspan="2" class="py-3 px-3 text-[11px] font-normal text-slate-500">Documento listo para descarga en PDF</td>
+          <td colspan="3" class="py-2.5 px-3 text-right uppercase tracking-wider">Totales Presupuesto</td>
+          <td class="py-2.5 px-3 text-center font-mono">${totalUnits}</td>
+          <td class="py-2.5 px-3 text-right font-mono">${formatEuro(baseSum)}</td>
+          <td class="py-2.5 px-3 text-right font-mono text-indigo-700">${formatEuro(igicSum)}</td>
+          <td class="py-2.5 px-3 text-right font-mono text-indigo-700">${formatEuro(grandTotal)}</td>
+          <td colspan="2" class="py-2.5 px-3 text-[11px] font-medium text-slate-500">Impuesto IGIC (7%) aplicado</td>
         </tr>
       `;
 
       const modal = document.getElementById('report-preview-modal');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
     }
 
     function closeReportPreviewModal() {
@@ -1845,7 +1991,7 @@
 
     function exportToPDF() {
       if (!studentIdentity) {
-        showToast('Debes identificarte antes de generar el PDF');
+        showToast('Debes identificarte antes de descargar el PDF');
         return;
       }
 
@@ -1853,204 +1999,187 @@
       const { flat, baseSum, igicSum, grandTotal, totalUnits } = totals;
 
       if (flat.length === 0) {
-        showToast('Añade al menos un componente antes de descargar el PDF');
+        showToast('Añade al menos un componente antes de generar el PDF');
         return;
       }
 
       if (!window.jspdf || !window.jspdf.jsPDF) {
+        showToast('Abriendo impresión del navegador como respaldo...');
         openReportPreviewModal();
-        window.print();
+        setTimeout(() => window.print(), 300);
         return;
       }
 
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+        const nowStr = new Date().toLocaleString('es-ES', {
+          day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
 
-      const studentName = studentIdentity.fullName;
-      const studentGroup = studentIdentity.group;
-      const nowStr = new Date().toLocaleString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+        // Cabecera institucional
+        doc.setFillColor(79, 70, 229);
+        doc.rect(10, 10, pageW - 20, 22, 'F');
 
-      // 1. Cabecera institucional del documento
-      doc.setFillColor(79, 70, 229);
-      doc.rect(0, 0, 297, 22, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+        doc.text('INFORME DE CONFIGURACIÓN Y PRESUPUESTO DE EQUIPO INFORMÁTICO', 14, 18.5);
 
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.text('INFORME DE EVALUACIÓN — CONFIGURACIÓN Y PRESUPUESTO DE EQUIPO PC', 14, 10.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9.5);
+        doc.text(`Alumno/a: ${studentIdentity.fullName}   |   Curso/Grupo: ${studentIdentity.group}   |   Fecha: ${nowStr}`, 14, 26.5);
 
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.text('PC Studio Builder • Régimen Fiscal Aplicado: IGIC (7%)', 14, 16.5);
-      doc.text(`Emitido: ${nowStr}`, 283, 16.5, { align: 'right' });
+        // Cuadro resumen económico (IGIC 7%)
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(203, 213, 225);
+        doc.roundedRect(10, 35, pageW - 20, 12, 2, 2, 'FD');
 
-      // 2. Bloque de identidad sellada del alumno/a
-      doc.setFillColor(248, 250, 252);
-      doc.setDrawColor(203, 213, 225);
-      doc.roundedRect(14, 26, 269, 13, 2, 2, 'FD');
+        doc.setTextColor(30, 41, 59);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text(`Total Componentes: ${totalUnits} ud(s).`, 15, 42.5);
+        doc.text(`Base Imponible: ${formatEuro(baseSum)}`, 82, 42.5);
+        doc.setTextColor(79, 70, 229);
+        doc.text(`Cuota IGIC (7%): ${formatEuro(igicSum)}`, 152, 42.5);
+        doc.text(`TOTAL PRESUPUESTO (IGIC incl.): ${formatEuro(grandTotal)}`, 214, 42.5);
 
-      doc.setTextColor(71, 85, 105);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.text('ALUMNO/A EVALUADO:', 18, 31.5);
-      doc.text('CURSO / GRUPO:', 165, 31.5);
+        const rowImages = [];
+        const tableBody = flat.map((row, idx) => {
+          const lineBase = +(row.item.price * row.qty).toFixed(2);
+          const lineIgic = +(lineBase * 0.07).toFixed(2);
+          const lineTotal = +(lineBase + lineIgic).toFixed(2);
+          const jData = justifications[row.item.id] || { reason: '', note: '' };
+          const imgData = componentImages[row.item.id] || null;
+          rowImages[idx] = imgData;
 
-      doc.setTextColor(15, 23, 42);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.text(studentName, 18, 36.5);
-      doc.text(studentGroup, 165, 36.5);
+          return [
+            row.catLabel,
+            imgData ? '' : 'Sin imagen',
+            `${row.item.name}\n${row.item.specs}`,
+            String(row.qty),
+            formatEuro(lineBase),
+            formatEuro(lineIgic),
+            formatEuro(lineTotal),
+            jData.reason || 'Sin cumplimentar',
+            jData.note || 'Sin cumplimentar'
+          ];
+        });
 
-      // 3. Resumen económico
-      doc.setFillColor(238, 242, 255);
-      doc.setDrawColor(199, 210, 254);
-      doc.roundedRect(14, 41.5, 269, 9.5, 1.5, 1.5, 'FD');
-
-      doc.setFontSize(8.5);
-      doc.setTextColor(30, 41, 59);
-      doc.text(`Componentes totales: ${totalUnits} uds.`, 18, 47.5);
-      doc.text(`Base Imponible: ${formatEuro(baseSum)}`, 92, 47.5);
-      doc.text(`Cuota IGIC (7%): ${formatEuro(igicSum)}`, 162, 47.5);
-      doc.setTextColor(67, 56, 202);
-      doc.text(`TOTAL CON IGIC: ${formatEuro(grandTotal)}`, 279, 47.5, { align: 'right' });
-
-      // 4. Tabla de Componentes, Imágenes y Justificaciones del Alumno/a
-      const rowImages = flat.map(row => componentImages[row.item.id] || null);
-
-      const tableBody = flat.map(row => {
-        const lineBase = +(row.item.price * row.qty).toFixed(2);
-        const lineIgic = +(lineBase * 0.07).toFixed(2);
-        const lineTotal = +(lineBase + lineIgic).toFixed(2);
-        const jData = justifications[row.item.id] || { reason: '', note: '' };
-
-        return [
-          row.catLabel,
-          '',
-          `${row.item.name}\n(${row.item.specs})`,
-          String(row.qty),
-          formatEuro(lineBase),
-          formatEuro(lineIgic),
-          formatEuro(lineTotal),
-          jData.reason.trim() || '— Sin cumplimentar —',
-          jData.note.trim() || '— Sin cumplimentar —'
-        ];
-      });
-
-      doc.autoTable({
-        startY: 54,
-        margin: { left: 14, right: 14 },
-        head: [[
-          'Categoría',
-          'Imagen',
-          'Componente y Especificaciones',
-          'Uds.',
-          'Base (€)',
-          'IGIC 7% (€)',
-          'Total (€)',
-          'Motivo de elección',
-          'Justificación de compatibilidad'
-        ]],
-        body: tableBody,
-        foot: [[
-          'TOTALES PRESUPUESTO (IGIC 7% INCLUIDO)',
-          '',
-          '',
-          String(totalUnits),
-          formatEuro(baseSum),
-          formatEuro(igicSum),
-          formatEuro(grandTotal),
-          '',
-          ''
-        ]],
-        theme: 'grid',
-        styles: {
-          font: 'helvetica',
-          fontSize: 7.4,
-          cellPadding: 2.2,
-          textColor: [15, 23, 42],
-          lineColor: [203, 213, 225],
-          lineWidth: 0.2,
-          overflow: 'linebreak',
-          valign: 'top'
-        },
-        headStyles: {
-          fillColor: [79, 70, 229],
-          textColor: [255, 255, 255],
-          fontStyle: 'bold',
-          fontSize: 7.6
-        },
-        footStyles: {
-          fillColor: [241, 245, 249],
-          textColor: [15, 23, 42],
-          fontStyle: 'bold',
-          fontSize: 7.8
-        },
-        columnStyles: {
-          0: { cellWidth: 24, fontStyle: 'bold' },
-          1: { cellWidth: 24, halign: 'center', valign: 'middle' },
-          2: { cellWidth: 50 },
-          3: { cellWidth: 9, halign: 'center' },
-          4: { cellWidth: 19, halign: 'right' },
-          5: { cellWidth: 19, halign: 'right' },
-          6: { cellWidth: 20, halign: 'right', fontStyle: 'bold' },
-          7: { cellWidth: 51 },
-          8: { cellWidth: 53 }
-        },
-        didParseCell: function (data) {
-          if (data.section === 'body' && rowImages[data.row.index]) {
-            data.cell.styles.minCellHeight = 20;
-          }
-        },
-        didDrawCell: function (data) {
-          if (data.section === 'body' && data.column.index === 1) {
-            const img = rowImages[data.row.index];
-            if (img && img.dataUrl) {
-              const pad = 1.6;
-              const availW = data.cell.width - pad * 2;
-              const availH = data.cell.height - pad * 2;
-              const scale = Math.min(availW / img.width, availH / img.height);
-              const drawW = img.width * scale;
-              const drawH = img.height * scale;
-              const drawX = data.cell.x + (data.cell.width - drawW) / 2;
-              const drawY = data.cell.y + (data.cell.height - drawH) / 2;
-              doc.addImage(img.dataUrl, 'JPEG', drawX, drawY, drawW, drawH);
-            } else {
-              doc.setFontSize(6.5);
-              doc.setTextColor(148, 163, 184);
-              doc.text(
-                'Sin imagen',
-                data.cell.x + data.cell.width / 2,
-                data.cell.y + data.cell.height / 2 + 1,
-                { align: 'center' }
-              );
+        doc.autoTable({
+          startY: 51,
+          margin: { left: 10, right: 10, bottom: 14 },
+          head: [[
+            'Categoría',
+            'Imagen',
+            'Componente y Especificaciones',
+            'Uds.',
+            'Base (€)',
+            'IGIC 7%',
+            'Total (€)',
+            'Motivo de elección',
+            'Justificación técnica'
+          ]],
+          body: tableBody,
+          foot: [[
+            'TOTALES',
+            '',
+            `${flat.length} línea(s) de hardware/periféricos`,
+            String(totalUnits),
+            formatEuro(baseSum),
+            formatEuro(igicSum),
+            formatEuro(grandTotal),
+            '',
+            'Impuesto IGIC (7%) aplicado'
+          ]],
+          theme: 'grid',
+          styles: {
+            font: 'helvetica',
+            fontSize: 7.5,
+            cellPadding: 2.2,
+            textColor: [30, 41, 59],
+            lineColor: [203, 213, 225],
+            lineWidth: 0.2,
+            valign: 'top',
+            overflow: 'linebreak'
+          },
+          headStyles: {
+            fillColor: [30, 41, 59],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 7.5,
+            halign: 'left'
+          },
+          footStyles: {
+            fillColor: [238, 242, 255],
+            textColor: [30, 27, 75],
+            fontStyle: 'bold',
+            fontSize: 8
+          },
+          columnStyles: {
+            0: { cellWidth: 26, fontStyle: 'bold' },
+            1: { cellWidth: 24, halign: 'center', valign: 'middle' },
+            2: { cellWidth: 50 },
+            3: { cellWidth: 11, halign: 'center' },
+            4: { cellWidth: 20, halign: 'right' },
+            5: { cellWidth: 19, halign: 'right' },
+            6: { cellWidth: 22, halign: 'right', fontStyle: 'bold' },
+            7: { cellWidth: 52 },
+            8: { cellWidth: 53 }
+          },
+          didParseCell: function (data) {
+            if (data.section === 'body' && rowImages[data.row.index]) {
+              data.cell.styles.minCellHeight = 22;
             }
-          }
-        },
-        didDrawPage: function (data) {
-          const pageCount = doc.internal.getNumberOfPages();
-          doc.setFontSize(7.5);
-          doc.setTextColor(100, 116, 139);
-          doc.text(
-            `Evaluación PC Studio Builder • Alumno/a: ${studentName} • Página ${data.pageNumber} de ${pageCount}`,
-            14,
-            204
-          );
-        }
-      });
+          },
+          didDrawCell: function (data) {
+            if (data.section === 'body' && data.column.index === 1) {
+              const imgObj = rowImages[data.row.index];
+              if (imgObj && imgObj.dataUrl) {
+                const pad = 1.8;
+                const availW = data.cell.width - pad * 2;
+                const availH = data.cell.height - pad * 2;
+                const ratio = Math.min(availW / (imgObj.width || 100), availH / (imgObj.height || 100));
+                const drawW = Math.max(4, (imgObj.width || 100) * ratio);
+                const drawH = Math.max(4, (imgObj.height || 100) * ratio);
+                const offsetX = data.cell.x + (data.cell.width - drawW) / 2;
+                const offsetY = data.cell.y + (data.cell.height - drawH) / 2;
 
-      const safeFileName = sanitizeFileName(studentName);
-      doc.save(`Evaluacion_PC_${safeFileName}.pdf`);
-      showToast(`PDF descargado: Evaluacion_PC_${safeFileName}.pdf`);
+                doc.addImage(imgObj.dataUrl, 'JPEG', offsetX, offsetY, drawW, drawH);
+              }
+            }
+          },
+          didDrawPage: function (data) {
+            const pageCount = doc.internal.getNumberOfPages();
+            doc.setFontSize(8);
+            doc.setTextColor(100, 116, 139);
+            doc.text(
+              `PC Studio Builder (Modo Evaluación) — ${studentIdentity.fullName}`,
+              10,
+              pageH - 6
+            );
+            doc.text(
+              `Página ${data.pageNumber} de ${pageCount}`,
+              pageW - 10,
+              pageH - 6,
+              { align: 'right' }
+            );
+          }
+        });
+
+        const safeFileName = sanitizeFileName(studentIdentity.fullName);
+        const pdfFileName = `Evaluacion_PC_${safeFileName}.pdf`;
+        doc.save(pdfFileName);
+        showToast(`PDF descargado: ${pdfFileName}`);
+      } catch (err) {
+        showToast('Error al generar el PDF. Usa Vista Previa e imprimir.');
+      }
     }
 
     // -------------------------------------------------------------------------
-    // 10B. EXPORTACIÓN DE ARCHIVO ENCRIPTADO (.SAV) PARA CORRECCIÓN AUTOMÁTICA
+    // 10B. CIFRADO Y EXPORTACIÓN DE ARCHIVO .SAV PARA CORRECCIÓN AUTOMÁTICA
     // -------------------------------------------------------------------------
     const SAV_SECRET_KEY = 'PCStudioBuilder::EvalKey#2026!CanariasIGIC';
 
@@ -2076,7 +2205,6 @@
         S[j] = tmp;
       }
 
-      // Descartar los primeros 512 bytes del flujo (RC4-drop512)
       let i = 0;
       j = 0;
       for (let k = 0; k < 512; k++) {
@@ -2115,7 +2243,6 @@
       const payloadBytes = encoder.encode(plainJsonStr);
       const checksum = computeFnv1a32(payloadBytes);
 
-      // Cabecera interna binaria: 'PCS1' (4 bytes) + checksum FNV-1a 32-bit (4 bytes) + payload UTF-8
       const innerBuffer = new Uint8Array(8 + payloadBytes.length);
       innerBuffer[0] = 0x50; // 'P'
       innerBuffer[1] = 0x43; // 'C'
@@ -2127,7 +2254,6 @@
       innerBuffer[7] = checksum & 0xff;
       innerBuffer.set(payloadBytes, 8);
 
-      // Vector de inicialización / sal aleatoria de 16 bytes
       const iv = new Uint8Array(16);
       if (window.crypto && window.crypto.getRandomValues) {
         window.crypto.getRandomValues(iv);
@@ -2142,7 +2268,6 @@
 
       const cipherBytes = rc4Drop512(combinedKey, innerBuffer);
 
-      // Paquete final: IV (16 bytes) + Texto cifrado
       const packet = new Uint8Array(iv.length + cipherBytes.length);
       packet.set(iv, 0);
       packet.set(cipherBytes, iv.length);
@@ -2166,7 +2291,6 @@
         return;
       }
 
-      // Estructura de datos del equipo montado (excluyendo los datos binarios/base64 de imágenes)
       const savPayload = {
         schemaVersion: '1.0',
         exportedAt: new Date().toISOString(),
@@ -2221,22 +2345,425 @@
         }
       };
 
-      const encryptedContent = encryptSavPayload(JSON.stringify(savPayload));
-      const blob = new Blob([encryptedContent], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
+      try {
+        const encryptedContent = encryptSavPayload(JSON.stringify(savPayload));
+        const blob = new Blob([encryptedContent], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
 
-      const safeFileName = sanitizeFileName(studentIdentity.fullName);
-      const fileName = `Evaluacion_PC_${safeFileName}.sav`;
+        const safeFileName = sanitizeFileName(studentIdentity.fullName);
+        const fileName = `Evaluacion_PC_${safeFileName}.sav`;
 
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-      showToast(`Archivo encriptado descargado: ${fileName}`);
+        showToast(`Archivo .SAV generado: ${fileName}`);
+      } catch (err) {
+        showToast('Error al generar el archivo .sav encriptado');
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 10C. GUARDADO Y CARGA DE TRABAJO ENCRIPTADO (.PCC) + AUTOGUARDADO LOCAL
+    // -------------------------------------------------------------------------
+    const PCC_SECRET_KEY = 'PCStudioBuilder::SaveProject#2026!PCC_Cipher';
+    const AUTOSAVE_DB_NAME = 'PCStudioBuilderLocalDB';
+    const AUTOSAVE_STORE_NAME = 'workspace_state';
+    const AUTOSAVE_RECORD_KEY = 'current_student_session';
+    let autoSaveDebounceTimer = null;
+
+    function base64ToUint8(b64Str) {
+      const clean = b64Str.replace(/\s+/g, '');
+      const binary = atob(clean);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return bytes;
+    }
+
+    function serializeWorkspaceSnapshot() {
+      const buildIds = {
+        cpu: build.cpu ? build.cpu.id : null,
+        motherboard: build.motherboard ? build.motherboard.id : null,
+        ram: build.ram ? build.ram.id : null,
+        gpu: build.gpu ? build.gpu.id : null,
+        cooler: build.cooler ? build.cooler.id : null,
+        storage: (build.storage || []).map(e => ({ id: e.item.id, qty: e.qty })),
+        psu: build.psu ? build.psu.id : null,
+        case: build.case ? build.case.id : null,
+        cooling_extras: (build.cooling_extras || []).map(e => ({ id: e.item.id, qty: e.qty })),
+        monitors: (build.monitors || []).map(e => ({ id: e.item.id, qty: e.qty })),
+        peripherals: (build.peripherals || []).map(e => ({ id: e.item.id, qty: e.qty }))
+      };
+
+      return {
+        format: 'PCPCC',
+        version: '1.0',
+        savedAt: new Date().toISOString(),
+        studentIdentity: studentIdentity ? {
+          fullName: studentIdentity.fullName,
+          group: studentIdentity.group,
+          lockedAt: studentIdentity.lockedAt
+        } : null,
+        buildIds,
+        justifications,
+        componentImages,
+        activeCategory
+      };
+    }
+
+    function applyWorkspaceSnapshot(snapshot, options = {}) {
+      if (!snapshot || typeof snapshot !== 'object' || !snapshot.buildIds) {
+        throw new Error('Estructura de proyecto inválida o dañada.');
+      }
+
+      const bIds = snapshot.buildIds;
+      const findCatalogItem = (catKey, id) => {
+        if (!id || !CATALOG[catKey]) return null;
+        return CATALOG[catKey].find(it => it.id === id) || null;
+      };
+
+      const restoredBuild = {
+        cpu: findCatalogItem('cpu', bIds.cpu),
+        motherboard: findCatalogItem('motherboard', bIds.motherboard),
+        ram: findCatalogItem('ram', bIds.ram),
+        gpu: findCatalogItem('gpu', bIds.gpu),
+        cooler: findCatalogItem('cooler', bIds.cooler),
+        storage: [],
+        psu: findCatalogItem('psu', bIds.psu),
+        case: findCatalogItem('case', bIds.case),
+        cooling_extras: [],
+        monitors: [],
+        peripherals: []
+      };
+
+      ['storage', 'cooling_extras', 'monitors', 'peripherals'].forEach(multiKey => {
+        const arr = Array.isArray(bIds[multiKey]) ? bIds[multiKey] : [];
+        arr.forEach(entry => {
+          const item = findCatalogItem(multiKey, entry.id);
+          const qty = Math.max(1, parseInt(entry.qty, 10) || 1);
+          if (item) {
+            restoredBuild[multiKey].push({ item, qty });
+          }
+        });
+      });
+
+      build = restoredBuild;
+      justifications = (snapshot.justifications && typeof snapshot.justifications === 'object')
+        ? JSON.parse(JSON.stringify(snapshot.justifications))
+        : {};
+      componentImages = (snapshot.componentImages && typeof snapshot.componentImages === 'object')
+        ? JSON.parse(JSON.stringify(snapshot.componentImages))
+        : {};
+
+      if (snapshot.activeCategory && CATALOG[snapshot.activeCategory]) {
+        activeCategory = snapshot.activeCategory;
+      }
+
+      // Restaurar identidad del alumno si aún no estaba bloqueada en la sesión actual
+      if (!studentIdentity && snapshot.studentIdentity && snapshot.studentIdentity.fullName) {
+        const s = snapshot.studentIdentity;
+        studentIdentity = Object.freeze({
+          fullName: String(s.fullName).trim(),
+          group: String(s.group || 'Sin especificar').trim(),
+          lockedAt: s.lockedAt || new Date().toISOString()
+        });
+
+        const hdrNameEl = document.getElementById('hdr-student-name');
+        if (hdrNameEl) {
+          hdrNameEl.textContent = studentIdentity.group && studentIdentity.group !== 'Sin especificar'
+            ? `${studentIdentity.fullName} (${studentIdentity.group})`
+            : studentIdentity.fullName;
+        }
+
+        const loginModal = document.getElementById('student-login-modal');
+        if (loginModal) {
+          loginModal.classList.add('hidden');
+        }
+      }
+
+      refreshAllViews();
+      if (!options.skipAutoSave) {
+        scheduleAutoSave();
+      }
+    }
+
+    // Cifrado de archivo de proyecto .PCC (Cabecera PCPCC1$ + IV 16B + RC4-drop512 + FNV-1a)
+    function encryptPccPayload(plainJsonStr) {
+      const encoder = new TextEncoder();
+      const payloadBytes = encoder.encode(plainJsonStr);
+      const checksum = computeFnv1a32(payloadBytes);
+
+      // Cabecera interna binaria: 'PCC1' (4 bytes) + checksum FNV-1a 32-bit (4 bytes) + payload UTF-8
+      const innerBuffer = new Uint8Array(8 + payloadBytes.length);
+      innerBuffer[0] = 0x50; // 'P'
+      innerBuffer[1] = 0x43; // 'C'
+      innerBuffer[2] = 0x43; // 'C'
+      innerBuffer[3] = 0x31; // '1'
+      innerBuffer[4] = (checksum >>> 24) & 0xff;
+      innerBuffer[5] = (checksum >>> 16) & 0xff;
+      innerBuffer[6] = (checksum >>> 8) & 0xff;
+      innerBuffer[7] = checksum & 0xff;
+      innerBuffer.set(payloadBytes, 8);
+
+      const iv = new Uint8Array(16);
+      if (window.crypto && window.crypto.getRandomValues) {
+        window.crypto.getRandomValues(iv);
+      } else {
+        for (let k = 0; k < 16; k++) iv[k] = Math.floor(Math.random() * 256);
+      }
+
+      const secretBytes = encoder.encode(PCC_SECRET_KEY);
+      const combinedKey = new Uint8Array(secretBytes.length + iv.length);
+      combinedKey.set(secretBytes, 0);
+      combinedKey.set(iv, secretBytes.length);
+
+      const cipherBytes = rc4Drop512(combinedKey, innerBuffer);
+
+      const packet = new Uint8Array(iv.length + cipherBytes.length);
+      packet.set(iv, 0);
+      packet.set(cipherBytes, iv.length);
+
+      const b64 = uint8ToBase64(packet);
+      const wrapped = b64.match(/.{1,76}/g).join('\n');
+      return `PCPCC1$\n${wrapped}\n`;
+    }
+
+    function decryptPccContent(rawText) {
+      if (!rawText || typeof rawText !== 'string') {
+        throw new Error('El archivo está vacío o no es legible.');
+      }
+
+      const trimmed = rawText.trim();
+      if (!trimmed.startsWith('PCPCC1$')) {
+        throw new Error('Formato inválido: el archivo no corresponde a un proyecto .pcc válido.');
+      }
+
+      const b64Body = trimmed.slice('PCPCC1$'.length).trim();
+      if (!b64Body) {
+        throw new Error('El archivo .pcc no contiene datos.');
+      }
+
+      let packet;
+      try {
+        packet = base64ToUint8(b64Body);
+      } catch (e) {
+        throw new Error('Datos codificados dañados o truncados.');
+      }
+
+      if (packet.length < 24) {
+        throw new Error('Paquete de proyecto incompleto.');
+      }
+
+      const iv = packet.subarray(0, 16);
+      const cipherBytes = packet.subarray(16);
+
+      const encoder = new TextEncoder();
+      const secretBytes = encoder.encode(PCC_SECRET_KEY);
+      const combinedKey = new Uint8Array(secretBytes.length + iv.length);
+      combinedKey.set(secretBytes, 0);
+      combinedKey.set(iv, secretBytes.length);
+
+      const innerBuffer = rc4Drop512(combinedKey, cipherBytes);
+
+      if (
+        innerBuffer[0] !== 0x50 ||
+        innerBuffer[1] !== 0x43 ||
+        innerBuffer[2] !== 0x43 ||
+        innerBuffer[3] !== 0x31
+      ) {
+        throw new Error('Clave inválida o archivo corrupto.');
+      }
+
+      const expectedChecksum = (
+        (innerBuffer[4] << 24) |
+        (innerBuffer[5] << 16) |
+        (innerBuffer[6] << 8) |
+        innerBuffer[7]
+      ) >>> 0;
+
+      const payloadBytes = innerBuffer.subarray(8);
+      const actualChecksum = computeFnv1a32(payloadBytes);
+
+      if (expectedChecksum !== actualChecksum) {
+        throw new Error('El archivo .pcc ha sido alterado o está dañado.');
+      }
+
+      const decoder = new TextDecoder('utf-8');
+      return JSON.parse(decoder.decode(payloadBytes));
+    }
+
+    function exportToPCC() {
+      if (!studentIdentity) {
+        showToast('Debes identificarte antes de guardar el trabajo');
+        return;
+      }
+
+      try {
+        const snapshot = serializeWorkspaceSnapshot();
+        const encryptedContent = encryptPccPayload(JSON.stringify(snapshot));
+        const blob = new Blob([encryptedContent], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+
+        const safeFileName = sanitizeFileName(studentIdentity.fullName);
+        const fileName = `Proyecto_PC_${safeFileName}.pcc`;
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+        showToast(`Trabajo guardado en archivo encriptado: ${fileName}`);
+      } catch (err) {
+        showToast('No se pudo generar el archivo .pcc');
+      }
+    }
+
+    async function handlePccFileSelected(event, fromLoginModal) {
+      const file = event.target && event.target.files && event.target.files[0];
+      if (!file) return;
+
+      try {
+        const rawText = await file.text();
+        const snapshot = decryptPccContent(rawText);
+
+        if (fromLoginModal && (!snapshot.studentIdentity || !snapshot.studentIdentity.fullName)) {
+          throw new Error('El archivo .pcc no contiene datos de identificación del alumno.');
+        }
+
+        const hadPreviousStudent = Boolean(studentIdentity);
+        applyWorkspaceSnapshot(snapshot);
+
+        const imgCount = Object.keys(componentImages).length;
+        const extraNote = hadPreviousStudent && snapshot.studentIdentity && snapshot.studentIdentity.fullName !== studentIdentity.fullName
+          ? ' (se conserva tu identidad bloqueada actual)'
+          : '';
+        showToast(`Proyecto cargado: ${file.name}${imgCount > 0 ? ` • ${imgCount} img.` : ''}${extraNote}`);
+      } catch (err) {
+        showToast(`Error al cargar .PCC: ${err.message}`);
+      } finally {
+        event.target.value = '';
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 10D. GUARDADO AUTOMÁTICO LOCAL EN EL NAVEGADOR (INDEXEDDB)
+    // -------------------------------------------------------------------------
+    function updateAutoSaveBadge(state, labelText) {
+      const dot = document.getElementById('autosave-dot');
+      const txt = document.getElementById('autosave-text');
+      if (!dot || !txt) return;
+
+      if (state === 'saving') {
+        dot.className = 'w-2 h-2 rounded-full bg-amber-500 animate-pulse';
+      } else if (state === 'error') {
+        dot.className = 'w-2 h-2 rounded-full bg-rose-500';
+      } else {
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+      }
+      txt.textContent = labelText;
+    }
+
+    function openAutoSaveDB() {
+      return new Promise((resolve, reject) => {
+        if (!window.indexedDB) {
+          reject(new Error('IndexedDB no disponible'));
+          return;
+        }
+        const request = window.indexedDB.open(AUTOSAVE_DB_NAME, 1);
+        request.onupgradeneeded = function (e) {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(AUTOSAVE_STORE_NAME)) {
+            db.createObjectStore(AUTOSAVE_STORE_NAME);
+          }
+        };
+        request.onsuccess = function (e) {
+          resolve(e.target.result);
+        };
+        request.onerror = function (e) {
+          reject(e.target.error || new Error('Error abriendo IndexedDB'));
+        };
+      });
+    }
+
+    async function persistAutoSaveNow() {
+      try {
+        updateAutoSaveBadge('saving', 'Guardando...');
+        const snapshot = serializeWorkspaceSnapshot();
+        const db = await openAutoSaveDB();
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(AUTOSAVE_STORE_NAME, 'readwrite');
+          const store = tx.objectStore(AUTOSAVE_STORE_NAME);
+          store.put(snapshot, AUTOSAVE_RECORD_KEY);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+        db.close();
+
+        const timeStr = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        updateAutoSaveBadge('saved', `Guardado auto ${timeStr}`);
+      } catch (err) {
+        updateAutoSaveBadge('error', 'Sin almacenamiento local');
+      }
+    }
+
+    function scheduleAutoSave() {
+      if (autoSaveDebounceTimer) clearTimeout(autoSaveDebounceTimer);
+      autoSaveDebounceTimer = setTimeout(() => {
+        persistAutoSaveNow();
+      }, 450);
+    }
+
+    async function restoreAutoSaveFromBrowser() {
+      try {
+        const db = await openAutoSaveDB();
+        const snapshot = await new Promise((resolve, reject) => {
+          const tx = db.transaction(AUTOSAVE_STORE_NAME, 'readonly');
+          const store = tx.objectStore(AUTOSAVE_STORE_NAME);
+          const req = store.get(AUTOSAVE_RECORD_KEY);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => reject(req.error);
+        });
+        db.close();
+
+        if (snapshot && snapshot.studentIdentity && snapshot.studentIdentity.fullName) {
+          applyWorkspaceSnapshot(snapshot, { skipAutoSave: true });
+          const savedTime = snapshot.savedAt
+            ? new Date(snapshot.savedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+            : '';
+          updateAutoSaveBadge('saved', savedTime ? `Restaurado (${savedTime})` : 'Restaurado');
+          showToast(`Avance restaurado automáticamente (${snapshot.studentIdentity.fullName})`);
+          return true;
+        }
+      } catch (err) {
+        // Fallback silencioso si el navegador bloquea el almacenamiento local
+      }
+      return false;
+    }
+
+    async function clearAutoSaveFromBrowser() {
+      try {
+        const db = await openAutoSaveDB();
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(AUTOSAVE_STORE_NAME, 'readwrite');
+          const store = tx.objectStore(AUTOSAVE_STORE_NAME);
+          store.delete(AUTOSAVE_RECORD_KEY);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+        db.close();
+        updateAutoSaveBadge('saved', 'Autoguardado listo');
+      } catch (err) {
+        // Fallback silencioso si IndexedDB no está disponible
+      }
     }
 
     // -------------------------------------------------------------------------
@@ -2251,10 +2778,13 @@
       renderBudgetList(totals);
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', async () => {
       refreshAllViews();
-      const nameInput = document.getElementById('input-student-name');
-      if (nameInput) nameInput.focus();
+      const restored = await restoreAutoSaveFromBrowser();
+      if (!restored) {
+        const nameInput = document.getElementById('input-student-name');
+        if (nameInput) nameInput.focus();
+      }
     });
   </script>
 </body>
